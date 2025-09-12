@@ -1,21 +1,21 @@
 // ================== Function definition ==================
 
-// Function to indicate in which of the stack slices the BF and FDA images are located
-function getSlice() {
-	// Prompt user to indicate the slice index in which the BF and FDA images are located
-	BF_index = getNumber("Indicate the slice containing the BF image", 0);
-	FDA_index = getNumber("Indicate the slice containing the FDA image", 0);
+// Function to indicate in which of the stack channels the BF and FDA images are located
+function getChannel() {
+	// Prompt user to indicate the channel index in which the BF and FDA images are located
+	BF_index = getNumber("Indicate the channel containing the BF image", 0);
+	FDA_index = getNumber("Indicate the channel containing the FDA image", 0);
 	
-	// Convert FDA slice integer to string with preceding zeroes
-	BF_slice = d2s(BF_index, 0); // Convert integer to string
-	BF_slice = "000" + BF_slice; // Add preceding zeroes to string
+	// Convert FDA channel integer to string with preceding zeroes
+	BF_channel = d2s(BF_index, 0); // Convert integer to string
+	BF_channel = "C" + BF_channel; // Add preceding zeroes to string
 	
-	// Convert FDA slice integer to string with preceding zeroes
-	FDA_slice = d2s(FDA_index, 0); // Convert integer to string
-	FDA_slice = "000" + FDA_slice; // Add preceding zeroes to string
+	// Convert FDA channel integer to string with preceding zeroes
+	FDA_channel = d2s(FDA_index, 0); // Convert integer to string
+	FDA_channel = "C" + FDA_channel; // Add preceding zeroes to string
 	
-	// Return the slices array for later use
-	return newArray(BF_slice, FDA_slice);
+	// Return the channels array for later use
+	return newArray(BF_channel, FDA_channel);
 }
 
 
@@ -36,7 +36,7 @@ function DirectorySetup() {
    working_dir = getDirectory("Select working directory"); // Open selection window to specify working directory
     
 	// Define input directory, raise error if it doesn't exist
-	input_dir = working_dir + "raw/";
+	input_dir = working_dir + "00_raw/";
 	
 	if (!File.exists(input_dir)) {
 		print("Error: Input directory ('../raw/') does not exist! \n");
@@ -44,26 +44,23 @@ function DirectorySetup() {
 	}
     
 	// Define output directories
-	output_dir = working_dir + "analysis/";
+	output_dir = working_dir + "01_analysis/";
 	control_dir = output_dir + "control/";
 	results_dir = output_dir + "results/";
 
-	// Raise error if output directory already exists
-	if (File.exists(output_dir)) {
-		print("Error: Output directory already exists, stopping macro to prevent overwriting data! \n");
-		exit();  // Exit the macro
+	// Check and create each directory if it doesn't exist
+	if (!File.exists(output_dir)) {
+	    File.makeDirectory(output_dir);
 	}
-	
-	// Create output directories if they don't exist
-	else {
-		File.makeDirectory(output_dir);
-		File.makeDirectory(control_dir);
-		File.makeDirectory(results_dir);
-		
-		print("Directories created:\n" + substring(output_dir, lengthOf(output_dir) - 9) + 
-		"\n" + substring(control_dir, lengthOf(control_dir) - 17) + 
-		"\n" + substring(results_dir, lengthOf(results_dir) - 17) + "\n");
+	if (!File.exists(control_dir)) {
+	    File.makeDirectory(control_dir);
 	}
+	if (!File.exists(results_dir)) {
+	    File.makeDirectory(results_dir);
+	}
+
+	// Print confirmation
+	print("Checked/created directories:\n" + output_dir + "\n" + control_dir + "\n" + results_dir + "\n");
 	
     // Return the directories array for later use
     return newArray(input_dir, control_dir, output_dir, results_dir);
@@ -83,18 +80,24 @@ function Viability(input, control_output, filename) {
 	// Image pre-processing
 	setOption("ScaleConversions", true);
 	run("8-bit"); // Convert all images to 8-bit
-	run("Stack to Images"); // Separate stack into different channels
+	run("Split Channels"); // Separate stack into different channels
 	
 	// Select, save, and duplicate BF and FDA channel
 	//BF
-	selectImage("raw/" + pure_filename + "-" + slices[0]); // Select BF image
+	selectImage(channels[0] + "-00_raw/" + filename); // Select BF image
+	if (nSlices > 1) {
+		run("Z Project...", "projection=[Max Intensity]");
+	}
 	run("Grays"); // Apply LUT
 	saveAs("Tiff", control_output + pure_filename + "_BF"); // Save the original image for later reference
 	rename(pure_filename + "_BF_control"); // Rename the image for later handling
 	run("Duplicate...", "title=" + pure_filename + "_BF"); // Duplicate the image for later handling
 	
 	//FDA
-	selectImage("raw/" + pure_filename + "-" + slices[1]); // Select the FDA image
+	selectImage(channels[1] + "-00_raw/" + filename); // Select the FDA image
+	if (nSlices > 1) {
+		run("Z Project...", "projection=[Max Intensity]");
+	}
 	run("Green"); // Apply LUT
 	saveAs("Tiff", control_output + pure_filename + "_FDA"); // Save the original image for later reference
 	rename(pure_filename + "_FDA_control"); // Rename the image for later handling
@@ -217,9 +220,9 @@ run("Close All");
 // Setup the directory structure
 directories = DirectorySetup(); // Run DirectorySetup function
 
-// Define which slice contains the BF and FDA image (slices[0] = BF, slices[1] = FDA)  
-slices = getSlice(); // Run getSlice function
-print("Selected slices:\nBF slice: " + slices[0] + "\nFDA slice: " + slices[1] + "\n"); // Print output of getSlice()
+// Define which channel contains the BF and FDA image (channels[0] = BF, channels[1] = FDA)  
+channels = getChannel(); // Run getChannel function
+print("Selected channels:\nBF channel: " + channels[0] + "\nFDA channel: " + channels[1] + "\n"); // Print output of getChannel()
 
 // Batch mode: don't display windows during processing
 setBatchMode(true);
