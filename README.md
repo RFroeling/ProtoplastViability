@@ -13,23 +13,22 @@ This ImageJ/Fiji macro opens all images in a user-specified working directory, s
 ### Working directory
 
 Upon excecution, the macro prompts the user to select a working directory. This working directory should contain:
-- A directory called 'raw', where the raw image files to be analysed are located
-- **No** directory called 'analysis'. The macro will make this directory itsself, and exit the macro if it already exists, to prevent overwriting of previous data.
+- A directory called '00_raw', where the raw image files to be analysed are located
 
-### Slice selection
+### Channel selection
 
-The macro assumes that the BF and FDA images are presented in a stack. You are asked to provide the number of the stack slice of the BF and FDA image ('1' for the first slice, '2' for the second, etc.).
+The macro assumes that the BF and FDA images are presented as different channels. You are asked to provide the number of the channel of the BF and FDA image ('1' for the first slice, '2' for the second, etc.).
 
 ### Output structure
 
-Once finished, the folder 'analysis' will be added to the working directory. Here, you'll find the following outputs:
-- analysis/control: .tif exports of the BF and FDA channels for each image, as well as .jpg images that indicate which cells are counted, and .jpg images of the segmentation. Use these outputs to check the quality of the segmentation/troubleshoot any problems.
-- analysis/results: .csv files for each image channel (seperate files for BF and FDA), with the results from the analysis.
-- analysis/summary.csv: a summary file with the count for each image channel. This is used as input for *'02_CalculateViability.py'*.
+Once finished, the folder '01_analysis' will be added to the working directory. Here, you'll find the following outputs:
+- 01_analysis/control: .tif exports of the BF and FDA channels for each image, as well as .jpg images that indicate which cells are counted, and .jpg images of the segmentation. Use these outputs to check the quality of the segmentation/troubleshoot any problems.
+- 01_analysis/results: .csv files for each image channel (seperate files for BF and FDA), with the results from the analysis.
+- 01_analysis/summary.csv: a summary file with the count for each image channel. This is used as input for *'02_CalculateViability.py'*.
 
 ## 02_CalculateViability.py
 
-This Python script reads the *summary.csv* output from the ImageJ/Fiji macro, and calculates viability based on the amount of cells counted in the BF and FDA slice of each replicate. It then groups the replicates by condition, and calculates the mean viability, amount of replicates (Count), and standard deviation of that condition.
+This Python script reads the *summary.csv* output from the ImageJ/Fiji macro, and calculates viability based on the amount of cells counted in the BF and FDA slice of each replicate. It then groups the replicates by condition, and calculates the mean viability, amount of replicates (Count), and standard deviation of that condition. It also produces a box/violin plot of the viability for each condition.
 
 *Viability = (FDA cell count / BF cell count) x 100%*
 
