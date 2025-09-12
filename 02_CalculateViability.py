@@ -61,11 +61,12 @@ def plot_viability(df, plot_type="violin"):
     conditions = grouped.index
     data = grouped.values
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(5, 8))
     
     # Choose plot type
     if plot_type == "violin":
         parts = ax.violinplot(data, showmeans=True, showextrema=False)
+        parts['cmeans'].set_color('black')  # Set mean line color
         for pc in parts['bodies']:
             pc.set_facecolor('#548235')
             pc.set_edgecolor('black')
@@ -109,7 +110,7 @@ if not working_dir:
     print("No directory selected. Exiting...")
 
 # Load the summary CSV file
-file_path = os.path.join(working_dir, 'analysis', 'summary.csv')
+file_path = os.path.join(working_dir, '01_analysis', 'summary.csv')
 if not os.path.exists(file_path):
     print(f"File not found: {file_path}")
     
@@ -124,9 +125,9 @@ print(viability_df)
 stats_df = calculate_statistics(viability_df)
 
 # Save the results
-viability_output_path = os.path.join(working_dir, 'analysis/viability.csv')
-stats_output_path = os.path.join(working_dir, 'analysis/viability_statistics.csv')
-plot_output_path = os.path.join(working_dir, 'analysis/viability_plot.png')
+viability_output_path = os.path.join(working_dir, '01_analysis/viability.csv')
+stats_output_path = os.path.join(working_dir, '01_analysis/viability_statistics.csv')
+plot_output_path = os.path.join(working_dir, '01_analysis/viability_plot.png')
 
 viability_df.to_csv(viability_output_path, index=False)
 stats_df.to_csv(stats_output_path, index=False)
