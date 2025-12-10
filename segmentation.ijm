@@ -31,6 +31,19 @@ function isOpen(title) {
 }
 
 
+function make_directory(directory) {
+	/* 	
+	Function to check whether a directory exists, and create it if it doesn't.
+
+	Input: directory (string) - path of the directory to check/create
+	*/
+	if (!File.exists(directory)) {
+		File.makeDirectory(directory);
+		print("Checked/created directory:\n" + directory + "\n");
+	}
+}
+
+
 // Function to set up the working directory to contain the correct subdirectories for storing the results
 function DirectorySetup() {
    working_dir = getDirectory("Select working directory"); // Open selection window to specify working directory
@@ -45,20 +58,14 @@ function DirectorySetup() {
     
 	// Define output directories
 	output_dir = working_dir + "01_analysis/";
+	make_directory(output_dir);
+
 	control_dir = output_dir + "control/";
+	make_directory(control_dir);
+
 	results_dir = output_dir + "results/";
-
-	// Check and create each directory if it doesn't exist
-	if (!File.exists(output_dir)) {
-	    File.makeDirectory(output_dir);
-	}
-	if (!File.exists(control_dir)) {
-	    File.makeDirectory(control_dir);
-	}
-	if (!File.exists(results_dir)) {
-	    File.makeDirectory(results_dir);
-	}
-
+	make_directory(results_dir);
+	
 	// Print confirmation
 	print("Checked/created directories:\n" + output_dir + "\n" + control_dir + "\n" + results_dir + "\n");
 	
