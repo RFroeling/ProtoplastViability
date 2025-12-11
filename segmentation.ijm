@@ -31,11 +31,11 @@ function isOpen(title) {
 }
 
 
-function make_directory(directory) {
+function check_directory(directory) {
 	/* 	
 	Function to check whether a directory exists, and create it if it doesn't.
 
-	Input: directory (string) - path of the directory to check/create
+	Args: directory (string) - path of the directory to check/create
 	*/
 	if (!File.exists(directory)) {
 		File.makeDirectory(directory);
@@ -44,10 +44,43 @@ function make_directory(directory) {
 }
 
 
+function get_working_directory() {
+	/*
+	Function to promt the user to select the working directory.
+
+	Returns: working_dir (string) - path of the selected working directory
+	*/
+	working_dir = getDirectory("Select working directory");
+	return working_dir;
+}
+
+
+function define_relative_directories(working_dir) {
+	/*
+	Function to define the relative paths of the input and output directories.
+
+	Args: working_dir (string) - path of the working directory
+
+	Returns: directories (array) - array containing the paths of the input and output directories
+	*/
+	input_dir = working_dir + "00_raw/";
+	output_dir = working_dir + "01_analysis/";
+	control_dir = output_dir + "control/";
+	results_dir = output_dir + "results/";
+	
+	return newArray(input_dir, control_dir, output_dir, results_dir);
+}
+
 // Function to set up the working directory to contain the correct subdirectories for storing the results
 function DirectorySetup() {
-   working_dir = getDirectory("Select working directory"); // Open selection window to specify working directory
-    
+	working_dir = get_working_directory();
+
+	directories = define_relative_directories(working_dir);
+	
+	for (i = 1; i < directories.length; i++) { // Check/create all output directories (start from i=1 to skip input directory)
+		check_directory(directories[i]);
+	}
+
 	// Define input directory, raise error if it doesn't exist
 	input_dir = working_dir + "00_raw/";
 	
@@ -56,21 +89,21 @@ function DirectorySetup() {
 		exit();  // Exit the macro
 	}
     
-	// Define output directories
-	output_dir = working_dir + "01_analysis/";
-	make_directory(output_dir);
+	// // Define output directories
+	// output_dir = working_dir + "01_analysis/";
+	// check_directory(output_dir);
 
-	control_dir = output_dir + "control/";
-	make_directory(control_dir);
+	// control_dir = output_dir + "control/";
+	// check_directory(control_dir);
 
-	results_dir = output_dir + "results/";
-	make_directory(results_dir);
+	// results_dir = output_dir + "results/";
+	// check_directory(results_dir);
 	
-	// Print confirmation
-	print("Checked/created directories:\n" + output_dir + "\n" + control_dir + "\n" + results_dir + "\n");
+	// // Print confirmation
+	// print("Checked/created directories:\n" + output_dir + "\n" + control_dir + "\n" + results_dir + "\n");
 	
     // Return the directories array for later use
-    return newArray(input_dir, control_dir, output_dir, results_dir);
+    return directories;
 }
 
 
