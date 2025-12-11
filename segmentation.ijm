@@ -31,7 +31,7 @@ function get_channels() {
 
 function is_open(title) {
 	/*
-	Function to check whether a window with a specific title exists
+	Function to check whether a window with a specific title exists.
 
 	Args: title (string) - title of the window to check
 
@@ -91,6 +91,8 @@ function define_relative_directories(working_dir) {
 function set_up_working_dir() {
 	/*
 	Function to set up the working directory structure.
+
+	Returns: directories (array) - array containing the paths of the input and output directories
 	*/
 	working_dir = get_working_directory();
 	directories = define_relative_directories(working_dir);
@@ -108,42 +110,54 @@ function set_up_working_dir() {
 }
 
 
-// Function for image (pre-)processing, segmentation, and counting of cell viability
-function Viability(input, control_output, filename) {
-	run("Bio-Formats Windowless Importer", "open=[" + input + filename + "]"); // Open image stack
-	
-	// Obtain the filename without extension for later handling
+function open_image(path, filename) {
+	/*
+	Function to open an image using Bio-Formats.
+
+	Args: path (string) - path of the directory containing the image
+		  filename (string) - name of the image file
+
+	Returns: pure_filename (string) - filename without extension
+	*/
+	run("Bio-Formats Windowless Importer", "open=[" + path + filename + "]"); // Open image stack
 	pure_filename = File.nameWithoutExtension;
-	
-	// Statement to show progress 
-	print("Analyzing " + pure_filename + "...");
+	print("Opened " + pure_filename);
+
+	return pure_filename;
+}
+
+
+function z_project_if_stack() {
+	/*
+	Function to perform a Z-projection if the image is a stack.
+	*/
+	if (nSlices > 1) {
+		run("Z Project...", "projection=[Max Intensity]");
+	}
+}
+
+
+function preprocess_and_duplicate_channels(channel, LUT, modality) {
+	selectImage(channel + "-00_raw/" + filename);
+	z_project_if_stack();
+	run(LUT);
+	saveAs("Tiff", control_path + pure_filename + "_" + modality);
+	rename(pure_filename + "_" + modality + "_control");
+	run("Duplicate...", "title=" + pure_filename + "_" + modality);
+}
+
+
+// Function for image (pre-)processing, segmentation, and counting of cell viability
+function Viability(input_path, control_path, filename) {
+	pure_filename = open_image(input_path, filename);
 
 	// Image pre-processing
 	setOption("ScaleConversions", true);
 	run("8-bit"); // Convert all images to 8-bit
 	run("Split Channels"); // Separate stack into different channels
-	
-	// Select, save, and duplicate BF and FDA channel
-	//BF
-	selectImage(channels[0] + "-00_raw/" + filename); // Select BF image
-	if (nSlices > 1) {
-		run("Z Project...", "projection=[Max Intensity]");
-	}
-	run("Grays"); // Apply LUT
-	saveAs("Tiff", control_output + pure_filename + "_BF"); // Save the original image for later reference
-	rename(pure_filename + "_BF_control"); // Rename the image for later handling
-	run("Duplicate...", "title=" + pure_filename + "_BF"); // Duplicate the image for later handling
-	
-	//FDA
-	selectImage(channels[1] + "-00_raw/" + filename); // Select the FDA image
-	if (nSlices > 1) {
-		run("Z Project...", "projection=[Max Intensity]");
-	}
-	run("Green"); // Apply LUT
-	saveAs("Tiff", control_output + pure_filename + "_FDA"); // Save the original image for later reference
-	rename(pure_filename + "_FDA_control"); // Rename the image for later handling
-	run("Duplicate...", "title=" + pure_filename + "_FDA"); // Duplicate the image for later handling
-	
+
+	preprocess_and_duplicate_channels(channels[0], "Grays", "BF");
+	preprocess_and_duplicate_channels(channels[1], "Green", "FDA");
 	
 	// ---------- Processing, segmentation and analysis of BF image > ADJUST PARAMETERS HERE FOR BF IMAGE ----------
 	
@@ -163,7 +177,7 @@ function Viability(input, control_output, filename) {
 	run("Watershed"); // Single pixel black line to separate neighbouring cells
 	
 	// Save segmented image for later reference
-	saveAs("Jpeg", control_output + pure_filename + "_BF_segmented"); // Save segmented image for later reference
+	saveAs("Jpeg", control_path + pure_filename + "_BF_segmented"); // Save segmented image for later reference
 	
 	// Analysis - ADJUSTABLE 
 	run("Analyze Particles...", "size=100-Infinity circularity=0.75-1.00 show=Ellipses display exclude clear include summarize");
@@ -188,7 +202,7 @@ function Viability(input, control_output, filename) {
 	run("Invert LUT"); // Invert LUT - Black background - magenta ellipses
 	run("Dilate"); // Increase width of ellipse stroke
 	run("Merge Channels...", "c4=" + pure_filename + "_BF_control c6=[Drawing of " + pure_filename + "_BF] create keep"); // Overlay ellipse fit onto original FDA image
-	saveAs("Jpeg", control_output + pure_filename + "_BF_composite"); // Save overlay for later referencing
+	saveAs("Jpeg", control_path + pure_filename + "_BF_composite"); // Save overlay for later referencing
 	
 	// Convert ellipse fit of BF image to mask
 	selectImage("Drawing of " + pure_filename + "_BF"); // Select ellipse fit of BF image
@@ -220,7 +234,7 @@ function Viability(input, control_output, filename) {
 	imageCalculator("AND create", pure_filename + "_FDA_segmented","FDA_mask"); // Overlay BF fit mask on segmented FDA image
 	
 	// Save segmented and masked image for later reference
-	saveAs("Jpeg", control_output + pure_filename + "_FDA_segmented");
+	saveAs("Jpeg", control_path + pure_filename + "_FDA_segmented");
 	rename(pure_filename + "_FDA"); // Rename for later handling
 	
 	// Analysis - ADJUSTABLE 
@@ -246,7 +260,7 @@ function Viability(input, control_output, filename) {
 	run("Invert LUT"); // Invert LUT - Black background - magenta ellipses
 	run("Dilate"); // Increase width of ellipse stroke
 	run("Merge Channels...", "c2=" + pure_filename + "_FDA_control c6=[Drawing of " + pure_filename + "_FDA] create keep"); // Overlay ellipse fit onto original FDA image
-	saveAs("Jpeg", control_output + pure_filename + "_FDA_composite"); // Save overlay for later referencing
+	saveAs("Jpeg", control_path + pure_filename + "_FDA_composite"); // Save overlay for later referencing
 	
 	// Close all images before continuing with the next image
 	run("Close All");
