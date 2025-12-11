@@ -29,15 +29,21 @@ function get_channels() {
 }
 
 
-// Function to check whether a window with a specific title exists
-function isOpen(title) {
-    list = getList("window.titles"); // Obtain a list of all the titles of open windows
-    for (i = 0; i < list.length; i++) { // Iterate over each item of the list
-        if (list[i] == title) { // Check whether the requested title occurs in the list of open windows
-            return true; // Return true if requested window is open
+function is_open(title) {
+	/*
+	Function to check whether a window with a specific title exists
+
+	Args: title (string) - title of the window to check
+
+	Returns: (boolean) - true if window is open, false if not
+	*/
+    list = getList("window.titles");
+    for (i = 0; i < list.length; i++) {
+        if (list[i] == title) {
+            return true;
         }
     }
-    return false; // Return false if requested window is not open
+    return false;
 }
 
 
@@ -165,7 +171,7 @@ function Viability(input, control_output, filename) {
 	// -------------------------------------------------------------------------------------------------------------
 	
 	// Check if the "Results" window is open
-	if (isOpen("Results")) {
+	if (is_open("Results")) {
     	// Save results as .csv
     	selectWindow("Results"); // Select 'Results' window
     	saveAs("Results", directories[3] + pure_filename + "_BF_results.csv"); // Save as .csv
@@ -223,7 +229,7 @@ function Viability(input, control_output, filename) {
 	// -------------------------------------------------------------------------------------------------------------
 	
 	// Check if the "Results" window is open
-	if (isOpen("Results")) {
+	if (is_open("Results")) {
     	// Save results as .csv
     	selectWindow("Results"); // Select 'Results' window
     	saveAs("Results", directories[3] + pure_filename + "_FDA_results.csv"); // Save as .csv
