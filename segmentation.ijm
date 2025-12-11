@@ -138,6 +138,14 @@ function z_project_if_stack() {
 
 
 function preprocess_and_duplicate_channels(channel, LUT, modality) {
+	/* 
+	Function to preprocces and dupliacte channels for later reference.
+
+	Args: channel (string) - channel to process
+		  LUT (string) - LUT to apply
+		  modality (string) - modality name for saving
+	*/
+
 	selectImage(channel + "-00_raw/" + filename);
 	z_project_if_stack();
 	run(LUT);
