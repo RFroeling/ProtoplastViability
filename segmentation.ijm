@@ -155,6 +155,43 @@ function preprocess_and_duplicate_channels(channel, LUT, modality) {
 }
 
 
+function process_image() {
+
+}
+
+
+function segment_image() {
+
+}
+
+
+function analyze_image() {
+
+}
+
+
+function outline_cells() {
+
+}
+
+
+function save_results(modality) {
+	/*
+	Function to save the results window as .csv.
+
+	Args: modality (string) - modality name for saving
+	*/
+	if (is_open("Results")) {
+		selectWindow("Results");
+		saveAs("Results", directories[3] + pure_filename + "_" + modality + "_results.csv"); // diretories[3] = results directory
+		close("Results");
+	} 
+	else {
+		print("No 'Results' window open. Skipping save operation. \n");
+		}
+}
+
+
 // Function for image (pre-)processing, segmentation, and counting of cell viability
 function Viability(input_path, control_path, filename) {
 	pure_filename = open_image(input_path, filename);
@@ -192,17 +229,7 @@ function Viability(input_path, control_path, filename) {
 	
 	// -------------------------------------------------------------------------------------------------------------
 	
-	// Check if the "Results" window is open
-	if (is_open("Results")) {
-    	// Save results as .csv
-    	selectWindow("Results"); // Select 'Results' window
-    	saveAs("Results", directories[3] + pure_filename + "_BF_results.csv"); // Save as .csv
-    	close("Results"); // Close results window
-	} 
-	// No results window? Skip saving and continue
-	else {
-   		print("No 'Results' window open. Skipping save operation. \n");
-	}
+	save_results("BF");
 	
 	// Overlay of fitted ellipses on the original BF image
 	selectWindow("Drawing of " + pure_filename + "_BF");
@@ -250,17 +277,7 @@ function Viability(input_path, control_path, filename) {
 	
 	// -------------------------------------------------------------------------------------------------------------
 	
-	// Check if the "Results" window is open
-	if (is_open("Results")) {
-    	// Save results as .csv
-    	selectWindow("Results"); // Select 'Results' window
-    	saveAs("Results", directories[3] + pure_filename + "_FDA_results.csv"); // Save as .csv
-    	close("Results"); // Close results window
-	} 
-	// No results window? Skip saving and continue
-	else {
-   		print("No 'Results' window open. Skipping save operation. \n");
-	}
+	save_results("FDA");
 	
 	// Overlay of fitted ellipses on the original FDA image
 	selectWindow("Drawing of " + pure_filename + "_FDA"); // Select window containing ellipse fit
