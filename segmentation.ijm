@@ -1,20 +1,30 @@
 // ================== Function definition ==================
 
-// Function to indicate in which of the stack channels the BF and FDA images are located
-function getChannel() {
-	// Prompt user to indicate the channel index in which the BF and FDA images are located
-	BF_index = getNumber("Indicate the channel containing the BF image", 0);
-	FDA_index = getNumber("Indicate the channel containing the FDA image", 0);
+function modality_to_channel(modality) {
+	/*
+	Function to convert an integer channel index to a string with preceding zeroes.
+
+	Args: index (integer) - channel index as integer
+
+	Returns: channel (string) - channel index as string with preceding zeroes
+	*/
+	index = getNumber("Indicate the channel containing the " + modality + " image", 0); // Prompt user for channel index
+	channel = d2s(index, 0);
+	channel = "C" + channel;
 	
-	// Convert FDA channel integer to string with preceding zeroes
-	BF_channel = d2s(BF_index, 0); // Convert integer to string
-	BF_channel = "C" + BF_channel; // Add preceding zeroes to string
+	return channel;
+}
+
+
+function get_channels() {
+	/*
+	Function to indicate in which of the stack channels the BF and FDA images are located.
+
+	Returns: channels (array) - array containing the BF and FDA channel strings
+	*/
+	BF_channel = modality_to_channel("BF");
+	FDA_channel = modality_to_channel("FDA");
 	
-	// Convert FDA channel integer to string with preceding zeroes
-	FDA_channel = d2s(FDA_index, 0); // Convert integer to string
-	FDA_channel = "C" + FDA_channel; // Add preceding zeroes to string
-	
-	// Return the channels array for later use
 	return newArray(BF_channel, FDA_channel);
 }
 
@@ -68,41 +78,26 @@ function define_relative_directories(working_dir) {
 	control_dir = output_dir + "control/";
 	results_dir = output_dir + "results/";
 	
-	return newArray(input_dir, control_dir, output_dir, results_dir);
+	return newArray(input_dir, output_dir, control_dir, results_dir);
 }
 
-// Function to set up the working directory to contain the correct subdirectories for storing the results
-function DirectorySetup() {
-	working_dir = get_working_directory();
 
+function set_up_working_dir() {
+	/*
+	Function to set up the working directory structure.
+	*/
+	working_dir = get_working_directory();
 	directories = define_relative_directories(working_dir);
 	
 	for (i = 1; i < directories.length; i++) { // Check/create all output directories (start from i=1 to skip input directory)
 		check_directory(directories[i]);
 	}
-
-	// Define input directory, raise error if it doesn't exist
-	input_dir = working_dir + "00_raw/";
 	
-	if (!File.exists(input_dir)) {
-		print("Error: Input directory ('../raw/') does not exist! \n");
-		exit();  // Exit the macro
+	if (!File.exists(directories[0])) { // Check whether input directory exists (directories[0] = input directory)
+		print("Error: Input directory ('../00_raw/') does not exist! \n");
+		exit();
 	}
-    
-	// // Define output directories
-	// output_dir = working_dir + "01_analysis/";
-	// check_directory(output_dir);
 
-	// control_dir = output_dir + "control/";
-	// check_directory(control_dir);
-
-	// results_dir = output_dir + "results/";
-	// check_directory(results_dir);
-	
-	// // Print confirmation
-	// print("Checked/created directories:\n" + output_dir + "\n" + control_dir + "\n" + results_dir + "\n");
-	
-    // Return the directories array for later use
     return directories;
 }
 
@@ -258,10 +253,10 @@ function Viability(input, control_output, filename) {
 run("Close All");
 
 // Setup the directory structure
-directories = DirectorySetup(); // Run DirectorySetup function
+directories = set_up_working_dir(); // Run DirectorySetup function
 
 // Define which channel contains the BF and FDA image (channels[0] = BF, channels[1] = FDA)  
-channels = getChannel(); // Run getChannel function
+channels = get_channels(); // Run getChannel function
 print("Selected channels:\nBF channel: " + channels[0] + "\nFDA channel: " + channels[1] + "\n"); // Print output of getChannel()
 
 // Batch mode: don't display windows during processing
@@ -270,17 +265,20 @@ setBatchMode(true);
 // Iterate over all files in the input directory and count cells for each image
 list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
 for (i = 0; i < list.length; i++) { // Iterate over each item of the list
-	Viability(directories[0], directories[1], list[i]); // Apply viability function for each image in the 'raw' directory
+	Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
 }
 
 // Save the output as .scv
 selectWindow("Summary"); // Select summary window
-saveAs("Results", directories[2] + "summary.csv"); // Save as .csv
+saveAs("Results", directories[1] + "summary.csv"); // Save as .csv
 close("summary.csv"); // Close summary window
 
 // Print finished statement
-print("Finished! Results can be found in " + directories[2] + "\n");
+print("Finished! Results can be found in " + directories[1] + "\n");
 
 // Turn off batch mode
 setBatchMode(false);
 
+// setBatchMode(true);
+// main();
+// setBatchMode(false);
