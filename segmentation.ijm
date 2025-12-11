@@ -145,7 +145,6 @@ function preprocess_and_duplicate_channels(channel, LUT, modality) {
 		  LUT (string) - LUT to apply
 		  modality (string) - modality name for saving
 	*/
-
 	selectImage(channel + "-00_raw/" + filename);
 	z_project_if_stack();
 	run(LUT);
@@ -160,8 +159,26 @@ function process_image() {
 }
 
 
-function segment_image() {
+function segment_image(modality, algorithm) {
+	/* 
+	Function to segment an image according to a specified algorithm.
 
+	Args: modality (string) - modality name for saving
+		  algorithm (string) - thresholding algorithm to use	
+	*/
+	if (modality == "BF") {
+		mode = "";	
+	}
+	else {
+		mode = "dark";
+	}
+
+	setAutoThreshold(algorithm + " " + mode + " no-reset"); // Make image binary according to specified protocol
+	setOption("BlackBackground", true); // Background is black, foreground is white
+	run("Convert to Mask");
+	run("Dilate"); 
+	run("Fill Holes");
+	run("Watershed");
 }
 
 
@@ -213,13 +230,7 @@ function Viability(input_path, control_path, filename) {
 	run("Gaussian Blur...", "sigma=2"); // Blur
 	run("Subtract Background...", "rolling=20 light sliding"); // Remove background noise
 	
-	// Segmentation - ADJUSTABLE
-	setAutoThreshold("MaxEntropy no-reset"); // Make image binary according to specified protocol
-	setOption("BlackBackground", true); // Background is black, foreground is white
-	run("Convert to Mask");
-	run("Dilate"); // Widen the segmentation size
-	run("Fill Holes"); // Fill holes in segmented cells
-	run("Watershed"); // Single pixel black line to separate neighbouring cells
+	segment_image("BF", "MaxEntropy");
 	
 	// Save segmented image for later reference
 	saveAs("Jpeg", control_path + pure_filename + "_BF_segmented"); // Save segmented image for later reference
@@ -230,7 +241,7 @@ function Viability(input_path, control_path, filename) {
 	// -------------------------------------------------------------------------------------------------------------
 	
 	save_results("BF");
-	
+
 	// Overlay of fitted ellipses on the original BF image
 	selectWindow("Drawing of " + pure_filename + "_BF");
 	run("Magenta"); // Apply 'Magenta' LUT - Magenta background, black ellipses
@@ -256,13 +267,7 @@ function Viability(input_path, control_path, filename) {
 	run("Gaussian Blur...", "sigma=2"); // Blur
 //	run("Subtract Background...", "rolling=50");  // Remove background noise
 	
-	// Segmentation - ADJUSTABLE
-	setAutoThreshold("Triangle dark no-reset"); // Make image binary according to specified protocol
-	setOption("BlackBackground", true); // Background is black, foreground is white
-	run("Convert to Mask");
-	run("Dilate"); // Widen the segmentation size
-	run("Fill Holes"); // Fill holes in segmented cells
-	run("Watershed"); // Single pixel black line to separate neighbouring cells
+	segment_image("FDA", "Triangle");
 	rename(pure_filename + "_FDA_segmented"); // Rename for later handling
 	
 	// Apply BF mask
