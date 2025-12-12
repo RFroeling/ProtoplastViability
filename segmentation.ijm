@@ -144,7 +144,7 @@ function z_project_if_stack() {
 }
 
 
-function preprocess_and_duplicate_channels(channel, modality) {
+function preprocess_and_duplicate_channels(modality) {
 	/* 
 	Function to preprocces and dupliacte channels for later reference.
 
@@ -152,13 +152,15 @@ function preprocess_and_duplicate_channels(channel, modality) {
 		  modality (string) - modality name for saving
 	*/
 	if (modality == "BF") {
+		channel_id = 0;
 		LUT = "Grays";	
 	}
 	else {
+		channel_id = 1;
 		LUT = "Green";	
 	}
 
-	selectImage(channel + "-00_raw/" + filename);
+	selectImage(channels[channel_id] + "-00_raw/" + filename);
 	z_project_if_stack();
 	run(LUT);
 	save_image("Tiff", modality, "raw");
@@ -268,7 +270,28 @@ function save_image(filetype, modality, suffix) {
 	saveAs(filetype, control_path + pure_filename + "_" + modality + "_" + suffix);
 }
 
-function analyze_modality() {
+function analyze_modality(modality) {
+
+	preprocess_and_duplicate_channels(channels[0], "BF");	
+	selectImage(pure_filename + "_BF");
+	process_image("BF");
+	segment_image("BF", "MaxEntropy");
+	save_image("Jpeg", "BF", "segmented");
+	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
+	save_results("BF");
+	outline_cells("BF");
+
+	preprocess_and_duplicate_channels(channels[1], "FDA");
+	selectImage(pure_filename + "_FDA");
+	process_image("FDA");
+	segment_image("FDA", "Triangle");
+	rename(pure_filename + "_FDA_segmented"); // Rename for later handling
+	// Apply BF mask
+	imageCalculator("AND create", pure_filename + "_FDA_segmented","FDA_mask"); // Overlay BF fit mask on segmented FDA image
+	save_image("Jpeg", "FDA", "segmented");
+	rename(pure_filename + "_FDA"); // Rename for later handling
+	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
+	
 
 }
 
@@ -281,11 +304,7 @@ function Viability(input_path, control_path, filename) {
 	run("8-bit"); // Convert all images to 8-bit
 	run("Split Channels"); // Separate stack into different channels
 
-	preprocess_and_duplicate_channels(channels[0], "BF");
-	preprocess_and_duplicate_channels(channels[1], "FDA");
-	
-	
-	// Select BF image
+	preprocess_and_duplicate_channels("BF");	
 	selectImage(pure_filename + "_BF");
 	process_image("BF");
 	segment_image("BF", "MaxEntropy");
@@ -305,18 +324,15 @@ function Viability(input_path, control_path, filename) {
 	// ---------- Processing, segmentation and analysis of FDA image > ADJUST PARAMETERS HERE FOR FDA IMAGE ----------
 	
 	// Select FDA image
+	preprocess_and_duplicate_channels("FDA");
 	selectImage(pure_filename + "_FDA");
 	process_image("FDA");
 	segment_image("FDA", "Triangle");
 	rename(pure_filename + "_FDA_segmented"); // Rename for later handling
-	
 	// Apply BF mask
 	imageCalculator("AND create", pure_filename + "_FDA_segmented","FDA_mask"); // Overlay BF fit mask on segmented FDA image
-	
-	// Save segmented and masked image for later reference
 	save_image("Jpeg", "FDA", "segmented");
 	rename(pure_filename + "_FDA"); // Rename for later handling
-	
 	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
 	
 	// -------------------------------------------------------------------------------------------------------------
