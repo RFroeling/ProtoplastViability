@@ -1,3 +1,10 @@
+// ================== Analysis constants ==================
+
+SIZE_MIN = 130; // Minimum particle size in pixels
+SIZE_MAX = "Infinity"; // Maximum particle size in pixels (set to "Infinity" for no maximum)
+CIRC_MIN = 0.75; // Minimum particle circularity (0.00 - 1.00)
+CIRC_MAX = 1.00; // Maximum particle circularity (0.00 - 1.00)
+
 // ================== Function definition ==================
 
 function modality_to_channel(modality) {
@@ -97,13 +104,13 @@ function set_up_working_dir() {
 	working_dir = get_working_directory();
 	directories = define_relative_directories(working_dir);
 	
+	if (!File.exists(directories[0])) { // Check whether input directory exists (directories[0] = input directory)
+		print("Error: Input directory ('../00_raw/') does not exist! Exiting macro... \n");
+		exit();
+	}
+
 	for (i = 1; i < directories.length; i++) { // Check/create all output directories (start from i=1 to skip input directory)
 		check_directory(directories[i]);
-	}
-	
-	if (!File.exists(directories[0])) { // Check whether input directory exists (directories[0] = input directory)
-		print("Error: Input directory ('../00_raw/') does not exist! \n");
-		exit();
 	}
 
     return directories;
@@ -173,7 +180,7 @@ function segment_image(modality, algorithm) {
 		mode = "dark";
 	}
 
-	setAutoThreshold(algorithm + " " + mode + " no-reset"); // Make image binary according to specified protocol
+	setAutoThreshold(algorithm + " " + mode + " no-reset");
 	setOption("BlackBackground", true); // Background is black, foreground is white
 	run("Convert to Mask");
 	run("Dilate"); 
@@ -182,8 +189,16 @@ function segment_image(modality, algorithm) {
 }
 
 
-function analyze_image() {
+function analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX) {
+	/*
+	Runs particle analysis with specified size and circularity parameters. 
 
+	Args: SIZE_MIN (number) - minimum particle size in pixels
+		  SIZE_MAX (number or string) - maximum particle size in pixels
+		  CIRC_MIN (number) - minimum particle circularity (0.00 - 1.00)
+		  CIRC_MAX (number) - maximum particle circularity (0.00 - 1.00)
+	*/
+	run("Analyze Particles...", "size=" + SIZE_MIN + "-" + SIZE_MAX + "circularity=" + CIRC_MIN + "-" + CIRC_MAX + " show=Ellipses display exclude clear include summarize");
 }
 
 
@@ -235,8 +250,7 @@ function Viability(input_path, control_path, filename) {
 	// Save segmented image for later reference
 	saveAs("Jpeg", control_path + pure_filename + "_BF_segmented"); // Save segmented image for later reference
 	
-	// Analysis - ADJUSTABLE 
-	run("Analyze Particles...", "size=100-Infinity circularity=0.75-1.00 show=Ellipses display exclude clear include summarize");
+	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
 	
 	// -------------------------------------------------------------------------------------------------------------
 	
@@ -277,8 +291,7 @@ function Viability(input_path, control_path, filename) {
 	saveAs("Jpeg", control_path + pure_filename + "_FDA_segmented");
 	rename(pure_filename + "_FDA"); // Rename for later handling
 	
-	// Analysis - ADJUSTABLE 
-	run("Analyze Particles...", "size=100-Infinity circularity=0.75-1.00 show=Ellipses display exclude clear include summarize");
+	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
 	
 	// -------------------------------------------------------------------------------------------------------------
 	
