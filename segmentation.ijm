@@ -167,10 +167,20 @@ function preprocess_and_duplicate_channels(channel, modality) {
 }
 
 
-function process_image() {
-
+function process_image(modality) {
+	/*
+	Function to perform basic image processing before segmentation.
+	*/
+	run("Gaussian Blur...", "sigma=2");
+	
+	if (modality == "BF") {
+		run("Subtract Background...", "rolling=20 light sliding");
+		// BF specific processin can be added here
+	}
+	else {
+		// FDA specific processing can be added here
+	}
 }
-
 
 function segment_image(modality, algorithm) {
 	/* 
@@ -258,6 +268,9 @@ function save_image(filetype, modality, suffix) {
 	saveAs(filetype, control_path + pure_filename + "_" + modality + "_" + suffix);
 }
 
+function analyze_modality() {
+
+}
 
 // Function for image (pre-)processing, segmentation, and counting of cell viability
 function Viability(input_path, control_path, filename) {
@@ -271,15 +284,10 @@ function Viability(input_path, control_path, filename) {
 	preprocess_and_duplicate_channels(channels[0], "BF");
 	preprocess_and_duplicate_channels(channels[1], "FDA");
 	
-	// ---------- Processing, segmentation and analysis of BF image > ADJUST PARAMETERS HERE FOR BF IMAGE ----------
 	
 	// Select BF image
 	selectImage(pure_filename + "_BF");
-	
-	// Image processing - ADJUSTABLE
-	run("Gaussian Blur...", "sigma=2"); // Blur
-	run("Subtract Background...", "rolling=20 light sliding"); // Remove background noise
-
+	process_image("BF");
 	segment_image("BF", "MaxEntropy");
 	save_image("Jpeg", "BF", "segmented");
 	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
@@ -298,11 +306,7 @@ function Viability(input_path, control_path, filename) {
 	
 	// Select FDA image
 	selectImage(pure_filename + "_FDA");
-	
-	// Image processing - ADJUSTABLE
-	run("Gaussian Blur...", "sigma=2"); // Blur
-//	run("Subtract Background...", "rolling=50");  // Remove background noise
-	
+	process_image("FDA");
 	segment_image("FDA", "Triangle");
 	rename(pure_filename + "_FDA_segmented"); // Rename for later handling
 	
