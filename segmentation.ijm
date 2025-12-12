@@ -144,14 +144,20 @@ function z_project_if_stack() {
 }
 
 
-function preprocess_and_duplicate_channels(channel, LUT, modality) {
+function preprocess_and_duplicate_channels(channel, modality) {
 	/* 
 	Function to preprocces and dupliacte channels for later reference.
 
 	Args: channel (string) - channel to process
-		  LUT (string) - LUT to apply
 		  modality (string) - modality name for saving
 	*/
+	if (modality == "BF") {
+		LUT = "Grays";	
+	}
+	else {
+		LUT = "Green";	
+	}
+
 	selectImage(channel + "-00_raw/" + filename);
 	z_project_if_stack();
 	run(LUT);
@@ -202,8 +208,25 @@ function analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX) {
 }
 
 
-function outline_cells() {
+function outline_cells(modality) {
+	/* 
+	Function to outline fitted ellipses on the original image.
 
+	Args: modality (string) - modality name for saving
+	*/
+	if (modality == "BF") {
+		channel_id = 4;	
+	}
+	else {
+		channel_id = 2;	
+	}
+
+	selectWindow("Drawing of " + pure_filename + "_" + modality);
+	run("Magenta");
+	run("Invert LUT");
+	run("Dilate");
+	run("Merge Channels...", "c" + channel_id + "=" + pure_filename + "_" + modality + "_control c6=[Drawing of " + pure_filename + "_" + modality + "] create keep"); // Overlay ellipse fit onto original FDA image
+	save_image("Jpeg", modality, "composite");
 }
 
 
@@ -245,8 +268,8 @@ function Viability(input_path, control_path, filename) {
 	run("8-bit"); // Convert all images to 8-bit
 	run("Split Channels"); // Separate stack into different channels
 
-	preprocess_and_duplicate_channels(channels[0], "Grays", "BF");
-	preprocess_and_duplicate_channels(channels[1], "Green", "FDA");
+	preprocess_and_duplicate_channels(channels[0], "BF");
+	preprocess_and_duplicate_channels(channels[1], "FDA");
 	
 	// ---------- Processing, segmentation and analysis of BF image > ADJUST PARAMETERS HERE FOR BF IMAGE ----------
 	
@@ -256,24 +279,12 @@ function Viability(input_path, control_path, filename) {
 	// Image processing - ADJUSTABLE
 	run("Gaussian Blur...", "sigma=2"); // Blur
 	run("Subtract Background...", "rolling=20 light sliding"); // Remove background noise
-	
+
 	segment_image("BF", "MaxEntropy");
-
 	save_image("Jpeg", "BF", "segmented");
-	
 	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
-	
-	// -------------------------------------------------------------------------------------------------------------
-	
 	save_results("BF");
-
-	// Overlay of fitted ellipses on the original BF image
-	selectWindow("Drawing of " + pure_filename + "_BF");
-	run("Magenta"); // Apply 'Magenta' LUT - Magenta background, black ellipses
-	run("Invert LUT"); // Invert LUT - Black background - magenta ellipses
-	run("Dilate"); // Increase width of ellipse stroke
-	run("Merge Channels...", "c4=" + pure_filename + "_BF_control c6=[Drawing of " + pure_filename + "_BF] create keep"); // Overlay ellipse fit onto original FDA image
-	save_image("Jpeg", "BF", "composite");
+	outline_cells("BF");
 
 	// Convert ellipse fit of BF image to mask
 	selectImage("Drawing of " + pure_filename + "_BF"); // Select ellipse fit of BF image
@@ -307,14 +318,7 @@ function Viability(input_path, control_path, filename) {
 	// -------------------------------------------------------------------------------------------------------------
 	
 	save_results("FDA");
-	
-	// Overlay of fitted ellipses on the original FDA image
-	selectWindow("Drawing of " + pure_filename + "_FDA"); // Select window containing ellipse fit
-	run("Magenta"); // Apply 'Magenta' LUT - Magenta background, black ellipses
-	run("Invert LUT"); // Invert LUT - Black background - magenta ellipses
-	run("Dilate"); // Increase width of ellipse stroke
-	run("Merge Channels...", "c2=" + pure_filename + "_FDA_control c6=[Drawing of " + pure_filename + "_FDA] create keep"); // Overlay ellipse fit onto original FDA image
-	save_image("Jpeg", "FDA", "composite");
+	outline_cells("FDA");
 
 	// Close all images before continuing with the next image
 	run("Close All");
