@@ -1,8 +1,8 @@
 // ================== Analysis constants ==================
 
-SIZE_MIN = 130; // Minimum particle size in pixels
+SIZE_MIN = 100; // Minimum particle size in pixels
 SIZE_MAX = "Infinity"; // Maximum particle size in pixels (set to "Infinity" for no maximum)
-CIRC_MIN = 0.75; // Minimum particle circularity (0.00 - 1.00)
+CIRC_MIN = 0.80; // Minimum particle circularity (0.00 - 1.00)
 CIRC_MAX = 1.00; // Maximum particle circularity (0.00 - 1.00)
 
 // ================== Function definition ==================
@@ -155,7 +155,7 @@ function preprocess_and_duplicate_channels(channel, LUT, modality) {
 	selectImage(channel + "-00_raw/" + filename);
 	z_project_if_stack();
 	run(LUT);
-	saveAs("Tiff", control_path + pure_filename + "_" + modality);
+	save_image("Tiff", modality, "raw");
 	rename(pure_filename + "_" + modality + "_control");
 	run("Duplicate...", "title=" + pure_filename + "_" + modality);
 }
@@ -224,6 +224,18 @@ function save_results(modality) {
 }
 
 
+function save_image(filetype, modality, suffix) {
+	/*
+	Function to save the current image with a specified filetype and suffix.
+
+	Args: filetype (string) - filetype to save as (e.g. "Jpeg", "Tiff")
+		  modality (string) - modality name for saving
+		  suffix (string) - suffix to append to filename
+	*/
+	saveAs(filetype, control_path + pure_filename + "_" + modality + "_" + suffix);
+}
+
+
 // Function for image (pre-)processing, segmentation, and counting of cell viability
 function Viability(input_path, control_path, filename) {
 	pure_filename = open_image(input_path, filename);
@@ -246,9 +258,8 @@ function Viability(input_path, control_path, filename) {
 	run("Subtract Background...", "rolling=20 light sliding"); // Remove background noise
 	
 	segment_image("BF", "MaxEntropy");
-	
-	// Save segmented image for later reference
-	saveAs("Jpeg", control_path + pure_filename + "_BF_segmented"); // Save segmented image for later reference
+
+	save_image("Jpeg", "BF", "segmented");
 	
 	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
 	
@@ -262,8 +273,8 @@ function Viability(input_path, control_path, filename) {
 	run("Invert LUT"); // Invert LUT - Black background - magenta ellipses
 	run("Dilate"); // Increase width of ellipse stroke
 	run("Merge Channels...", "c4=" + pure_filename + "_BF_control c6=[Drawing of " + pure_filename + "_BF] create keep"); // Overlay ellipse fit onto original FDA image
-	saveAs("Jpeg", control_path + pure_filename + "_BF_composite"); // Save overlay for later referencing
-	
+	save_image("Jpeg", "BF", "composite");
+
 	// Convert ellipse fit of BF image to mask
 	selectImage("Drawing of " + pure_filename + "_BF"); // Select ellipse fit of BF image
 	rename("FDA_mask"); // Rename the image for later handling
@@ -288,7 +299,7 @@ function Viability(input_path, control_path, filename) {
 	imageCalculator("AND create", pure_filename + "_FDA_segmented","FDA_mask"); // Overlay BF fit mask on segmented FDA image
 	
 	// Save segmented and masked image for later reference
-	saveAs("Jpeg", control_path + pure_filename + "_FDA_segmented");
+	save_image("Jpeg", "FDA", "segmented");
 	rename(pure_filename + "_FDA"); // Rename for later handling
 	
 	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
@@ -303,8 +314,8 @@ function Viability(input_path, control_path, filename) {
 	run("Invert LUT"); // Invert LUT - Black background - magenta ellipses
 	run("Dilate"); // Increase width of ellipse stroke
 	run("Merge Channels...", "c2=" + pure_filename + "_FDA_control c6=[Drawing of " + pure_filename + "_FDA] create keep"); // Overlay ellipse fit onto original FDA image
-	saveAs("Jpeg", control_path + pure_filename + "_FDA_composite"); // Save overlay for later referencing
-	
+	save_image("Jpeg", "FDA", "composite");
+
 	// Close all images before continuing with the next image
 	run("Close All");
 }
