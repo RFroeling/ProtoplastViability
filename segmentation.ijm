@@ -31,6 +31,7 @@ function get_channels() {
 	*/
 	BF_channel = modality_to_channel("BF");
 	FDA_channel = modality_to_channel("FDA");
+	print("Selected channels:\nBF channel: " + BF_channel + "\nFDA channel: " + FDA_channel + "\n");
 	
 	return newArray(BF_channel, FDA_channel);
 }
@@ -319,36 +320,53 @@ function Viability(input_path, control_path, filename) {
 
 // ================== Execution ==================
 
-// Close all open images to prevent incorrect image selection
-run("Close All");
+function main() {
+	run("Close All");
+	directories = set_up_working_dir();
+	channels = get_channels();
 
-// Setup the directory structure
-directories = set_up_working_dir(); // Run DirectorySetup function
+	list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
+	for (i = 0; i < list.length; i++) { // Iterate over each item of the list
+		Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
+	}
 
-// Define which channel contains the BF and FDA image (channels[0] = BF, channels[1] = FDA)  
-channels = get_channels(); // Run getChannel function
-print("Selected channels:\nBF channel: " + channels[0] + "\nFDA channel: " + channels[1] + "\n"); // Print output of getChannel()
+	selectWindow("Summary"); // Select summary window
+	saveAs("Results", directories[1] + "summary.csv"); // Save as .csv
+	close("summary.csv"); // Close summary window
 
-// Batch mode: don't display windows during processing
-setBatchMode(true);
-
-// Iterate over all files in the input directory and count cells for each image
-list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
-for (i = 0; i < list.length; i++) { // Iterate over each item of the list
-	Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
+	// Print finished statement
+	print("Finished! Results can be found in " + directories[1] + "\n");
 }
 
-// Save the output as .scv
-selectWindow("Summary"); // Select summary window
-saveAs("Results", directories[1] + "summary.csv"); // Save as .csv
-close("summary.csv"); // Close summary window
 
-// Print finished statement
-print("Finished! Results can be found in " + directories[1] + "\n");
 
-// Turn off batch mode
-setBatchMode(false);
+// // Setup the directory structure
+// directories = set_up_working_dir(); // Run DirectorySetup function
 
+// // Define which channel contains the BF and FDA image (channels[0] = BF, channels[1] = FDA)  
+// channels = get_channels(); // Run getChannel function
+//  // Print output of getChannel()
+
+// // Batch mode: don't display windows during processing
 // setBatchMode(true);
-// main();
+
+// // Iterate over all files in the input directory and count cells for each image
+// list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
+// for (i = 0; i < list.length; i++) { // Iterate over each item of the list
+// 	Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
+// }
+
+// // Save the output as .scv
+// selectWindow("Summary"); // Select summary window
+// saveAs("Results", directories[1] + "summary.csv"); // Save as .csv
+// close("summary.csv"); // Close summary window
+
+// // Print finished statement
+// print("Finished! Results can be found in " + directories[1] + "\n");
+
+// // Turn off batch mode
 // setBatchMode(false);
+
+setBatchMode(true);
+main();
+setBatchMode(false);
