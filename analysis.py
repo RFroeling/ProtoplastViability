@@ -1,8 +1,8 @@
-import pandas as pd
 import os
-from tkinter import Tk, filedialog
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from tkinter import filedialog
 
 
 def select_working_directory():
@@ -45,9 +45,8 @@ def viability_per_sample(df):
     Returns:
         pd.DataFrame: DataFrame containing the calculated viability for each image (BF/FDA pair).
     """
-    results = []
+    results = [] # Initialize list to hold viability data
     
-    # Filter the data to get only _BF and _FDA rows
     bf_rows = df[df['Slice'].str.endswith('_BF')]
     fda_rows = df[df['Slice'].str.endswith('_FDA')]
     
@@ -57,11 +56,7 @@ def viability_per_sample(df):
         
         if not fda_row.empty:
             viability = calculate_viability(bf_row, fda_row)
-            
-            # Extract condition (everything before "_00x")
-            condition = slice_prefix.rsplit("_", 1)[0]  # Split at the last underscore
-            
-            # Append the result to the list
+            condition = slice_prefix.rsplit("_", 1)[0] # Extract condition (everything before "_00x")
             results.append({
                 'Slice Prefix': slice_prefix,
                 'Condition': condition,
@@ -71,12 +66,21 @@ def viability_per_sample(df):
     return pd.DataFrame(results)
 
 
-def calculate_statistics(viability_df):
-    stats = viability_df.groupby('Condition')['Viability'].agg(
+def calculate_statistics(df: pd.DataFrame):
+    """Groups viability data by condition and calculates mean, sample size and standard deviation.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing viability data per image
+
+    Returns:
+        pd.DataFrame: DataFrame containing calculated statistics per condition.
+    """
+    stats = df.groupby('Condition')['Viability'].agg(
         Mean='mean',
         Count='count',
         StdDev='std'
     ).reset_index()
+    
     return stats
 
 
