@@ -321,12 +321,14 @@ function Viability(input_path, control_path, filename) {
 // ================== Execution ==================
 
 function main() {
-	run("Close All");
+	run("Close All"); // To prevent previous windows from interfering
 	directories = set_up_working_dir();
 	channels = get_channels();
 
 	list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
-	for (i = 0; i < list.length; i++) { // Iterate over each item of the list
+	for (i = 0; i < list.length; i++) {
+		// if (!endsWith(list[i], "/"))
+        // 	listFiles(""+dir+list[i]); // Iterate over each item of the list
 		Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
 	}
 

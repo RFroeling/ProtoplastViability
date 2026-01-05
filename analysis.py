@@ -4,31 +4,59 @@ from tkinter import Tk, filedialog
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Prompt user to select a working directory
+
 def select_working_directory():
-    Tk().withdraw()  # Hide the root Tkinter window
+    """Opens selection window to select the working directory. Should be the same path as used in the FIJI macro.
+
+    Working directory should contain "01_analysis/viability.csv".
+
+    Returns:
+        string: Path to working directory.
+    """
     return filedialog.askdirectory(title="Select Working Directory")
 
-# Function to calculate viability
-def calculate_viability(df):
+
+def calculate_viability(bf_row: pd.Series, fda_row: pd.Series) -> float:
+    """Calculates viability of a single BF/FDA pair.
+
+    *Viability = (FDA cell count / BF cell count) x 100%*
+
+    Args:
+        bf_row (pd.Series): Brightfield row extracted from DataFrame containing summary data.
+        fda_row (pd.Series): Corresponding FDA row.
+
+    Returns:
+        float: Viability
+    """
+    bf_count = bf_row['Count']
+    fda_count = fda_row['Count'].values[0]
+
+    return (fda_count / bf_count) * 100
+
+
+def viability_per_sample(df):
+    """Calculates viability of all sample-entries in the summary DataFrame.
+
+    Assumes replicates are indicated by the suffix (_00x), where x indicates the index of that replicate (so _001, _002, etc.). 
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the summary output from the FIJI macro.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the calculated viability for each image (BF/FDA pair).
+    """
     results = []
     
     # Filter the data to get only _BF and _FDA rows
     bf_rows = df[df['Slice'].str.endswith('_BF')]
     fda_rows = df[df['Slice'].str.endswith('_FDA')]
     
-    # Loop through BF rows and match them with the corresponding FDA rows
-    for index, bf_row in bf_rows.iterrows():
-        slice_prefix = bf_row['Slice'].replace('_BF', '')
-        
-        # Find the corresponding FDA row
-        fda_row = fda_rows[fda_rows['Slice'].str.startswith(slice_prefix)]
+    for _, bf_row in bf_rows.iterrows():
+        slice_prefix = bf_row['Slice'].replace('_BF', '')      
+        fda_row = fda_rows[fda_rows['Slice'].str.startswith(slice_prefix)] # Find the corresponding FDA row
         
         if not fda_row.empty:
-            # Calculate viability
-            bf_count = bf_row['Count']
-            fda_count = fda_row['Count'].values[0]
-            viability = (fda_count / bf_count) * 100
+            viability = calculate_viability(bf_row, fda_row)
             
             # Extract condition (everything before "_00x")
             condition = slice_prefix.rsplit("_", 1)[0]  # Split at the last underscore
@@ -42,7 +70,7 @@ def calculate_viability(df):
 
     return pd.DataFrame(results)
 
-# Function to calculate statistics for each condition
+
 def calculate_statistics(viability_df):
     stats = viability_df.groupby('Condition')['Viability'].agg(
         Mean='mean',
@@ -51,7 +79,15 @@ def calculate_statistics(viability_df):
     ).reset_index()
     return stats
 
-# Function to plot statistics
+
+def boxplot(df: pd.DataFrame):
+    pass
+
+
+def violin_plot(df: pd.DataFrame):
+    pass
+
+
 def plot_viability(df, plot_type="violin"):
     # Ensure valid input
     if plot_type not in ["violin", "box"]:
@@ -118,7 +154,7 @@ df = pd.read_csv(file_path)
 print(df)
 
 # Calculate viability
-viability_df = calculate_viability(df)
+viability_df = viability_per_sample(df)
 print(viability_df)
 
 # Calculate statistics for each condition
@@ -134,7 +170,6 @@ stats_df.to_csv(stats_output_path, index=False)
 
 # Plot the statistics
 plot_viability(viability_df, plot_type='violin')
-
 print(f"Viability results saved to: {viability_output_path}")
 print(f"Statistics saved to: {stats_output_path}")
 print(f"Plot saved to: {plot_output_path}")
