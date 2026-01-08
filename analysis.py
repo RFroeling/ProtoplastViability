@@ -84,6 +84,24 @@ def calculate_statistics(df: pd.DataFrame):
     return stats
 
 
+def initialize_plot(df: pd.DataFrame):
+    """Initializes the plot for viability data.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing viability data per image.
+
+    Returns:
+        tuple: fig, ax, conditions, data
+    """
+    grouped = df.groupby("Condition")["Viability"].apply(list)
+    conditions = grouped.index
+    data = grouped.values
+
+    fig, ax = plt.subplots(figsize=(5, 8))
+
+    return fig, ax, conditions, data
+
+
 def boxplot(df: pd.DataFrame):
     pass
 
@@ -92,16 +110,12 @@ def violin_plot(df: pd.DataFrame):
     pass
 
 
-def plot_viability(df, plot_type="violin"):
+def plot_viability(df, plot_type="box"):
     # Ensure valid input
     if plot_type not in ["violin", "box"]:
         raise ValueError("plot_type must be 'violin' or 'box'")
     
-    grouped = df.groupby("Condition")["Viability"].apply(list)
-    conditions = grouped.index
-    data = grouped.values
-
-    fig, ax = plt.subplots(figsize=(5, 8))
+    fig, ax, conditions, data = initialize_plot(df)
     
     # Choose plot type
     if plot_type == "violin":
@@ -118,19 +132,19 @@ def plot_viability(df, plot_type="violin"):
             patch.set_alpha(0.6)
     
     # Add individual points
-    for i, vals in enumerate(data, start=1):
-        x = np.random.normal(i, 0.04, size=len(vals))  # jitter
-        ax.scatter(x, vals, color='black', alpha=0.7, s=20, zorder=3)
+    for i, values in enumerate(data, start=1):
+        x = np.random.normal(i, 0.04, size=len(values))  # jitter
+        ax.scatter(x, values, color='black', alpha=0.7, s=20, zorder=3)
 
     # Annotate mean ± std
-    for i, vals in enumerate(data, start=1):
-        mean_val = np.mean(vals)
-        std_val = np.std(vals)
+    for i, values in enumerate(data, start=1):
+        mean_val = np.mean(values)
+        std_val = np.std(values)
         ax.text(i, mean_val + std_val + 2, f"{mean_val:.1f} ± {std_val:.1f}",
                 ha='center', va='bottom', fontsize=9, fontweight='bold')
         
     # Extend y-axis so annotations fit
-    max_val = max([max(vals) for vals in data])
+    max_val = max([max(values) for values in data])
     ax.set_ylim(top=max_val * 1.025)  # 2.5% higher than max datapoint
 
     # Formatting
@@ -173,7 +187,7 @@ viability_df.to_csv(viability_output_path, index=False)
 stats_df.to_csv(stats_output_path, index=False)
 
 # Plot the statistics
-plot_viability(viability_df, plot_type='violin')
+plot_viability(viability_df, plot_type='box')
 print(f"Viability results saved to: {viability_output_path}")
 print(f"Statistics saved to: {stats_output_path}")
 print(f"Plot saved to: {plot_output_path}")
