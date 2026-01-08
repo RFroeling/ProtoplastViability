@@ -2,8 +2,9 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tkinter import filedialog
 from matplotlib.axes import Axes
+from tkinter import filedialog
+from typing import Any
 
 
 def select_working_directory():
@@ -15,6 +16,29 @@ def select_working_directory():
         string: Path to working directory.
     """
     return filedialog.askdirectory(title="Select Working Directory")
+
+
+def initialize_paths(working_dir: str):
+    """Initializes input and output paths for saving results.
+
+    Args:
+        working_dir (str): Path to working directory.
+        
+    Returns:
+        tuple: input_path, viability_output_path, stats_output_path, plot_output_path
+
+    Raises:
+        ValueError: If the input file does not exist.
+    """
+    input_path = os.path.join(working_dir, '01_analysis', 'summary.csv')
+    if not os.path.exists(input_path):
+        raise ValueError(f"File not found: {input_path}")
+
+    viability_output_path = os.path.join(working_dir, '01_analysis/viability.csv')
+    stats_output_path = os.path.join(working_dir, '01_analysis/viability_statistics.csv')
+    plot_output_path = os.path.join(working_dir, '01_analysis/viability_plot.png')
+    
+    return input_path, viability_output_path, stats_output_path, plot_output_path
 
 
 def load_data(file_path: str) -> pd.DataFrame:
@@ -118,42 +142,60 @@ def initialize_plot(df: pd.DataFrame) -> tuple:
     return fig, ax, conditions, data
 
 
-def boxplot(df: pd.DataFrame):
-    pass
+def plot_boxplot(ax: Axes, data: list):
+    """Plots a boxplot on the given Axes.
+
+    Args:
+        ax (Axes): Matplotlib Axes to plot on.
+        data (list): List of lists containing viability data per condition.
+    """
+    bp = ax.boxplot(data, patch_artist=True, widths=0.6)
+    for patch in bp['boxes']:
+        patch.set_facecolor("#548235")
+        patch.set_alpha(0.6)
 
 
 def plot_violin(ax: Axes, data: list):
-    parts = ax.violinplot(data, showmeans=True, showextrema=False)
+    """Plots a violin plot on the given Axes.
+    
+    Args:
+        ax (Axes): Matplotlib Axes to plot on.
+        data (list): List of lists containing viability data per condition.
+    """
+    parts: Any = ax.violinplot(data, showmeans=True, showextrema=False)
     parts['cmeans'].set_color('black')  # Set mean line color
-    for pc in parts['bodies']:
+    for pc in parts.get('bodies', []):
         pc.set_facecolor('#548235')
         pc.set_edgecolor('black')
         pc.set_alpha(0.6)
 
 
-def plot_viability(df, plot_type="box"):
-    # Ensure valid input
+def plot_viability(df, plot_type="box", save_path=None):
+    """Plots viability data as either a boxplot or violin plot with individual data points and mean ± std annotations.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing viability data per image.  
+        plot_type (str, optional): Type of plot to create ("violin" or "box"). Defaults to "box".
+        save_path (str, optional): Path to save the plot image. Defaults to None.
+
+    Raises:
+        ValueError: If plot_type is not "violin" or "box".
+    """
     if plot_type not in ["violin", "box"]:
         raise ValueError("plot_type must be 'violin' or 'box'")
     
     fig, ax, conditions, data = initialize_plot(df)
-    
-    # Choose plot type
+
     if plot_type == "violin":
         plot_violin(ax, data)
-    else:  # boxplot
-        bp = ax.boxplot(data, patch_artist=True, widths=0.6)
-        for patch in bp['boxes']:
-            patch.set_facecolor("#548235")
-            patch.set_alpha(0.6)
+    elif plot_type == "box":
+        plot_boxplot(ax, data)
     
-    # Add individual points
     for i, values in enumerate(data, start=1):
+        # Plot individual data points with jitter
         x = np.random.normal(i, 0.04, size=len(values))  # jitter
         ax.scatter(x, values, color='black', alpha=0.7, s=20, zorder=3)
-
-    # Annotate mean ± std
-    for i, values in enumerate(data, start=1):
+        # Annotate mean ± std
         mean_val = np.mean(values)
         std_val = np.std(values)
         ax.text(i, mean_val + std_val + 2, f"{mean_val:.1f} ± {std_val:.1f}",
@@ -169,51 +211,34 @@ def plot_viability(df, plot_type="box"):
     ax.set_ylabel("Viability (%)")
 
     plt.tight_layout()
-    plt.savefig(output_paths[2], dpi=300)
+    if save_path:
+        plt.savefig(save_path, dpi=300)
     plt.show()
 
 
-def initialize_output_paths(working_dir: str):
-    """Initializes output paths for saving results.
+def main():
+    """Main function to execute the viability analysis workflow."""
+    working_dir = select_working_directory()
+    if not working_dir:
+        print("No directory selected. Exiting...")
 
-    Args:
-        working_dir (str): Path to the working directory.
-    
-    Returns:
-        tuple: Paths for viability CSV, statistics CSV, and plot image.
-    """
-    viability_output_path = os.path.join(working_dir, '01_analysis/viability.csv')
-    stats_output_path = os.path.join(working_dir, '01_analysis/viability_statistics.csv')
-    plot_output_path = os.path.join(working_dir, '01_analysis/viability_plot.png')
-    
-    return viability_output_path, stats_output_path, plot_output_path
+    paths = initialize_paths(working_dir)
 
-# ========== Excecution ==========
+    summary_df = load_data(paths[0])
+    viability_df = viability_per_sample(summary_df)
 
-# Prompt user for the working directory
-working_dir = select_working_directory()
-if not working_dir:
-    print("No directory selected. Exiting...")
+    # Calculate statistics for each condition
+    stats_df = calculate_statistics(viability_df)
 
-# Load the summary CSV file
-file_path = os.path.join(working_dir, '01_analysis', 'summary.csv')
-if not os.path.exists(file_path):
-    print(f"File not found: {file_path}")
+    viability_df.to_csv(paths[1], index=False)
+    stats_df.to_csv(paths[2], index=False)
 
-summary_df = load_data(file_path)
-viability_df = viability_per_sample(summary_df)
+    # Plot the statistics
+    plot_viability(viability_df, plot_type='box', save_path=paths[3])
+    print(f"Viability results saved to: {paths[1]}")
+    print(f"Statistics saved to: {paths[2]}")
+    print(f"Plot saved to: {paths[3]}")
 
-# Calculate statistics for each condition
-stats_df = calculate_statistics(viability_df)
-
-# Save the results
-output_paths = initialize_output_paths(working_dir)
-
-viability_df.to_csv(output_paths[0], index=False)
-stats_df.to_csv(output_paths[1], index=False)
-
-# Plot the statistics
-plot_viability(viability_df, plot_type='violin')
-print(f"Viability results saved to: {output_paths[0]}")
-print(f"Statistics saved to: {output_paths[1]}")
-print(f"Plot saved to: {output_paths[2]}")
+# ========== Execution ==========
+if __name__ == "__main__":
+    main()
