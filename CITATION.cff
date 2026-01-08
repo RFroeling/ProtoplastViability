@@ -1,0 +1,25 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: ProtoplastViability
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - orcid: 'https://orcid.org/0009-0007-3879-1329'
+    affiliation: Wageningen University & Research
+    given-names: Rik
+    family-names: Froeling
+    email: rik.froeling@wur.nl
+  - given-names: Joris
+    family-names: Sprakel
+    email: joris.sprakel@wur.nl
+    affiliation: Wageningen University & Research
+    orcid: 'https://orcid.org/0000-0001-6532-4514'
+repository-code: 'https://git.wur.nl/froel001/protoplastviability'
+abstract: >-
+  FIJI macro for automated high-throughput analysis of
+  viability-stained protoplasts.
+license: CC-BY-4.0
