@@ -23,7 +23,7 @@ def initialize_paths(working_dir: str):
 
     Args:
         working_dir (str): Path to working directory.
-        
+
     Returns:
         tuple: input_path, viability_output_path, stats_output_path, plot_output_path
 
@@ -184,8 +184,9 @@ def plot_viability(df, plot_type="box", save_path=None):
     if plot_type not in ["violin", "box"]:
         raise ValueError("plot_type must be 'violin' or 'box'")
     
-    fig, ax, conditions, data = initialize_plot(df)
+    _, ax, conditions, data = initialize_plot(df)
 
+    # Plot either violin or boxplot
     if plot_type == "violin":
         plot_violin(ax, data)
     elif plot_type == "box":
@@ -213,6 +214,7 @@ def plot_viability(df, plot_type="box", save_path=None):
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=300)
+        print(f"Plot saved to: {save_path}")
     plt.show()
 
 
@@ -226,8 +228,6 @@ def main():
 
     summary_df = load_data(paths[0])
     viability_df = viability_per_sample(summary_df)
-
-    # Calculate statistics for each condition
     stats_df = calculate_statistics(viability_df)
 
     viability_df.to_csv(paths[1], index=False)
@@ -237,7 +237,7 @@ def main():
     plot_viability(viability_df, plot_type='box', save_path=paths[3])
     print(f"Viability results saved to: {paths[1]}")
     print(f"Statistics saved to: {paths[2]}")
-    print(f"Plot saved to: {paths[3]}")
+
 
 # ========== Execution ==========
 if __name__ == "__main__":
