@@ -260,6 +260,21 @@ function save_results(modality) {
 }
 
 
+function save_summary() {
+	/*
+	Function to save the summary results window as .csv.
+	*/
+	if (is_open("Summary")) {
+		selectWindow("Summary");
+		saveAs("Results", directories[1] + "summary.csv"); // diretories[1] = output directory
+		close("summary.csv");
+	} 
+	else {
+		print("No 'Summary' window open. Skipping save operation. \n");
+		}
+}
+
+
 function save_image(filetype, modality, suffix) {
 	/*
 	Function to save the current image with a specified filetype and suffix.
@@ -329,11 +344,7 @@ function main() {
 		analyze_file(directories[0], directories[2], list[i]); // directories[0] = input directory, directories[2] = control directory
 	}
 
-	selectWindow("Summary");
-	saveAs("Results", directories[1] + "summary.csv"); // directories[1] = output directory
-	close("summary.csv");
-
-	// Print finished statement
+	save_summary();
 	print("Finished! Results can be found in " + directories[1] + "\n");
 }
 
