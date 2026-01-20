@@ -75,7 +75,7 @@ Both these outputs can be used for further analysis/data visualisation.
 
 ### Python Dependencies
 
-The following Python packages are required (see `requirements.txt` for full list and versions):
+The following Python packages are required (see [requirements.txt](requirements.txt) for full list and versions):
 
 - **pandas**: Data manipulation and CSV handling
 - **numpy**: Numerical computations
