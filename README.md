@@ -16,7 +16,7 @@ cd protoplastviability
 
 # It is recommended to install the Python requirements in a virtual environment:
 python -m venv .venv
-venv\Scripts\activate
+venv/Scripts/activate
 
 pip install -r requirements.txt
 ```
@@ -106,7 +106,7 @@ If you use this software in your research, please cite it using the following me
   author={Froeling, Rik and Sprakel, Joris},
   affiliation={Wageningen University \& Research},
   doi={},
-  year={2024}
+  year={2026}
 }
 ```
 
