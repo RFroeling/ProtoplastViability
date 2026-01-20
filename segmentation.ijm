@@ -271,6 +271,7 @@ function save_image(filetype, modality, suffix) {
 	saveAs(filetype, control_path + pure_filename + "_" + modality + "_" + suffix);
 }
 
+
 function analyze_modality(modality, algorithm) {
 	preprocess_and_duplicate_channels(modality);
 	selectImage(pure_filename + "_" + modality);
@@ -293,7 +294,7 @@ function analyze_modality(modality, algorithm) {
 	outline_cells(modality);
 }
 
-// Function for image (pre-)processing, segmentation, and counting of cell viability
+
 function Viability(input_path, control_path, filename) {
 	pure_filename = open_image(input_path, filename);
 
@@ -318,8 +319,6 @@ function Viability(input_path, control_path, filename) {
 }
 
 
-// ================== Execution ==================
-
 function main() {
 	run("Close All"); // To prevent previous windows from interfering
 	directories = set_up_working_dir();
@@ -327,8 +326,6 @@ function main() {
 
 	list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
 	for (i = 0; i < list.length; i++) {
-		// if (!endsWith(list[i], "/"))
-        // 	listFiles(""+dir+list[i]); // Iterate over each item of the list
 		Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
 	}
 
@@ -341,34 +338,7 @@ function main() {
 }
 
 
-
-// // Setup the directory structure
-// directories = set_up_working_dir(); // Run DirectorySetup function
-
-// // Define which channel contains the BF and FDA image (channels[0] = BF, channels[1] = FDA)  
-// channels = get_channels(); // Run getChannel function
-//  // Print output of getChannel()
-
-// // Batch mode: don't display windows during processing
-// setBatchMode(true);
-
-// // Iterate over all files in the input directory and count cells for each image
-// list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
-// for (i = 0; i < list.length; i++) { // Iterate over each item of the list
-// 	Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
-// }
-
-// // Save the output as .scv
-// selectWindow("Summary"); // Select summary window
-// saveAs("Results", directories[1] + "summary.csv"); // Save as .csv
-// close("summary.csv"); // Close summary window
-
-// // Print finished statement
-// print("Finished! Results can be found in " + directories[1] + "\n");
-
-// // Turn off batch mode
-// setBatchMode(false);
-
+// ================== Execution ==================
 setBatchMode(true);
 main();
 setBatchMode(false);
