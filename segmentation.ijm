@@ -295,7 +295,7 @@ function analyze_modality(modality, algorithm) {
 }
 
 
-function Viability(input_path, control_path, filename) {
+function analyze_file(input_path, control_path, filename) {
 	pure_filename = open_image(input_path, filename);
 
 	// Image pre-processing
@@ -324,14 +324,14 @@ function main() {
 	directories = set_up_working_dir();
 	channels = get_channels();
 
-	list = getFileList(directories[0]); // Obtain a list of all filenames in the 'raw' directory
+	list = getFileList(directories[0]); // Get list of files in input directory
 	for (i = 0; i < list.length; i++) {
-		Viability(directories[0], directories[2], list[i]); // Apply viability function for each image in the 'raw' directory
+		analyze_file(directories[0], directories[2], list[i]); // directories[0] = input directory, directories[2] = control directory
 	}
 
-	selectWindow("Summary"); // Select summary window
-	saveAs("Results", directories[1] + "summary.csv"); // Save as .csv
-	close("summary.csv"); // Close summary window
+	selectWindow("Summary");
+	saveAs("Results", directories[1] + "summary.csv"); // directories[1] = output directory
+	close("summary.csv");
 
 	// Print finished statement
 	print("Finished! Results can be found in " + directories[1] + "\n");
