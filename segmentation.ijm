@@ -145,9 +145,19 @@ function z_project_if_stack() {
 }
 
 
+function preprocess_file() {
+	/*
+	Function to perform basic image pre-processing before analysis.
+	*/
+	setOption("ScaleConversions", true);
+	run("8-bit");
+	run("Split Channels");
+}
+
+
 function preprocess_and_duplicate_channels(modality) {
 	/* 
-	Function to preprocces and dupliacte channels for later reference.
+	Function to preprocces and duplicate channels for later reference.
 
 	Args: channel (string) - channel to process
 		  modality (string) - modality name for saving
@@ -184,6 +194,7 @@ function process_image(modality) {
 		// FDA specific processing can be added here
 	}
 }
+
 
 function segment_image(modality, algorithm) {
 	/* 
@@ -243,6 +254,19 @@ function outline_cells(modality) {
 }
 
 
+function create_BF_mask(BF_filename) {
+	/* 
+	Function to create a mask from the brightfield ellipse fit.
+	*/	
+	selectImage("Drawing of " + BF_filename + "_BF"); // Select ellipse fit of BF image
+	rename("FDA_mask");
+	run("Fill Holes"); // Fill holes to make mask
+	run("Dilate");
+	run("Dilate");
+	run("Apply LUT");
+}
+
+
 function save_results(modality) {
 	/*
 	Function to save the results window as .csv.
@@ -288,6 +312,12 @@ function save_image(filetype, modality, suffix) {
 
 
 function analyze_modality(modality, algorithm) {
+	/* 
+	Function to analyze a specific modality.
+
+	Args: modality (string) - modality name for saving
+		  algorithm (string) - thresholding algorithm to use	
+	*/
 	preprocess_and_duplicate_channels(modality);
 	selectImage(pure_filename + "_" + modality);
 	process_image(modality);
@@ -311,30 +341,26 @@ function analyze_modality(modality, algorithm) {
 
 
 function analyze_file(input_path, control_path, filename) {
+	/*
+	Function to analyze a single file.
+
+	Args: input_path (string) - path of the input directory
+		  control_path (string) - path of the control directory
+		  filename (string) - name of the image file
+	*/
 	pure_filename = open_image(input_path, filename);
-
-	// Image pre-processing
-	setOption("ScaleConversions", true);
-	run("8-bit"); // Convert all images to 8-bit
-	run("Split Channels"); // Separate stack into different channels
-	
+	preprocess_file();	
 	analyze_modality("BF", "MaxEntropy");
-
-	// Convert ellipse fit of BF image to mask
-	selectImage("Drawing of " + pure_filename + "_BF"); // Select ellipse fit of BF image
-	rename("FDA_mask"); // Rename the image for later handling
-	run("Fill Holes"); // Solid fill of fitted ellipses
-	run("Dilate"); // Increase size of mask
-	run("Dilate"); // Increase size of mask
-	run("Apply LUT"); // Fix the applied LUT	
-	
+	create_BF_mask(pure_filename);
 	analyze_modality("FDA", "Triangle");
-
 	run("Close All");
 }
 
 
 function main() {
+	/*
+	Main function to set up working directory and analyze all files.
+	*/
 	run("Close All"); // To prevent previous windows from interfering
 	directories = set_up_working_dir();
 	channels = get_channels();
