@@ -1,11 +1,77 @@
-// ================== Analysis constants ==================
-
-SIZE_MIN = 100; // Minimum particle size in pixels
-SIZE_MAX = "Infinity"; // Maximum particle size in pixels (set to "Infinity" for no maximum)
-CIRC_MIN = 0.80; // Minimum particle circularity (0.00 - 1.00)
-CIRC_MAX = 1.00; // Maximum particle circularity (0.00 - 1.00)
 
 // ================== Function definition ==================
+function get_constants() {
+    /*
+    Opens a dialog for user-defined analysis constants.
+    Keeps defaults and validates input.
+    Updates global constants.
+    */
+
+    valid = false;
+
+    while (!valid) {
+        Dialog.create("Analysis Parameters");
+
+        Dialog.addNumber("Minimum particle size:", 100);
+        Dialog.addString("Maximum particle size (use 'Infinity' for no max):", "Infinity");
+        Dialog.addNumber("Minimum circularity (0.00 - 1.00):", 0.80);
+        Dialog.addNumber("Maximum circularity (0.00 - 1.00):", 1.00);
+
+        Dialog.show();
+
+        // ---- Retrieve user inputs ----
+        size_min = Dialog.getNumber();
+        size_max_str = Dialog.getString();
+        circ_min = Dialog.getNumber();
+        circ_max = Dialog.getNumber();
+
+        // ---- Validation ----
+        valid = true;
+        error_msg = "";
+
+        // Size min must be >= 0
+        if (size_min < 0) {
+            valid = false;
+            error_msg += "- Minimum size must be >= 0\n";
+        }
+
+        // Size max must be >= size min OR "Infinity"
+        if (size_max_str != "Infinity") {
+            size_max = parseFloat(size_max_str);
+
+            if (isNaN(size_max) || size_max < 0) {
+                valid = false;
+                error_msg += "- Maximum size must be >= 0 or 'Infinity'\n";
+            } else if (size_max < size_min) {
+                valid = false;
+                error_msg += "- Maximum size must be >= minimum size\n";
+            }
+        }
+
+        // Circularity must be between 0 and 1
+        if (circ_min < 0 || circ_min > 1) {
+            valid = false;
+            error_msg += "- Minimum circularity must be between 0 and 1\n";
+        }
+
+        if (circ_max < 0 || circ_max > 1) {
+            valid = false;
+            error_msg += "- Maximum circularity must be between 0 and 1\n";
+        }
+
+        if (circ_max < circ_min) {
+            valid = false;
+            error_msg += "- Maximum circularity must be >= minimum circularity\n";
+        }
+
+        // ---- If invalid, show error and repeat ----
+        if (!valid) {
+            showMessage("Invalid Input", error_msg);
+        }
+    }
+    // Return as array
+    return newArray(size_min, size_max_str, circ_min, circ_max);
+}
 
 function modality_to_channel(modality) {
 	/*
@@ -219,16 +285,16 @@ function segment_image(modality, algorithm) {
 }
 
 
-function analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX) {
+function analyze_particles(params) {
 	/*
 	Runs particle analysis with specified size and circularity parameters. 
 
-	Args: SIZE_MIN (number) - minimum particle size in pixels
-		  SIZE_MAX (number or string) - maximum particle size in pixels
-		  CIRC_MIN (number) - minimum particle circularity (0.00 - 1.00)
-		  CIRC_MAX (number) - maximum particle circularity (0.00 - 1.00)
+	Args: params (array): [SIZE_MIN (number) - minimum particle size in pixels,
+		  				   SIZE_MAX (number or string) - maximum particle size in pixels,
+		  				   CIRC_MIN (number) - minimum particle circularity (0.00 - 1.00),
+		  				   CIRC_MAX (number) - maximum particle circularity (0.00 - 1.00)]
 	*/
-	run("Analyze Particles...", "size=" + SIZE_MIN + "-" + SIZE_MAX + "circularity=" + CIRC_MIN + "-" + CIRC_MAX + " show=Ellipses display exclude clear include summarize");
+	run("Analyze Particles...", "size=" + params[0] + "-" + params[1] + "circularity=" + params[2] + "-" + params[3] + " show=Ellipses display exclude clear include summarize");
 }
 
 
@@ -334,7 +400,7 @@ function analyze_modality(modality, algorithm) {
 		rename(pure_filename + "_" + modality); // Rename for later handling
 	}
 
-	analyze_particles(SIZE_MIN, SIZE_MAX, CIRC_MIN, CIRC_MAX);
+	analyze_particles(params);
 	save_results(modality);
 	outline_cells(modality);
 }
@@ -364,6 +430,7 @@ function main() {
 	run("Close All"); // To prevent previous windows from interfering
 	directories = set_up_working_dir();
 	channels = get_channels();
+	params = get_constants();
 
 	list = getFileList(directories[0]); // Get list of files in input directory
 	for (i = 0; i < list.length; i++) {
