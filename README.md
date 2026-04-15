@@ -10,11 +10,24 @@ Workflow to calculate the viability of protoplasts using an FDA (Fluorescein Dia
 
 ## Installation
 
+Installation is only required for the Python-portion of this workflow. If your goal is to only segment images and manually process the resulting data, no installation is required. Simply download the [macro](segmentation.ijm) and execute in FIJI.
+
 ```bash
 git clone https://git.wur.nl/froel001/protoplastviability.git
 cd protoplastviability
+```
 
-# It is recommended to install the Python requirements in a virtual environment:
+This project uses [uv](https://github.com/astral-sh/uv) for fast dependency management. If you don't have uv installed, install it first, then clone the repository and install dependencies using:
+
+```bash
+uv sync
+```
+
+### Alternative: Using pip
+
+A requirements.txt file is provided for compatibility with pip. It is recommended to install the Python requirements in a virtual environment (something [uv](https://github.com/astral-sh/uv) does automatically):
+
+```bash
 python -m venv .venv
 venv/Scripts/activate
 
@@ -33,9 +46,9 @@ Upon excecution, the macro prompts the user to select a working directory. This 
 
 - A directory called '00_raw', where the raw image files to be analysed are located
 
-### Channel selection
+### Setting selection
 
-The macro assumes that the BF and FDA images are presented as different channels. You are asked to provide the number of the channel of the BF and FDA image ('1' for the first slice, '2' for the second, etc.).
+After having selected the working directory, you will be prompted for supplying the segmentation settings. Provide the circularity and size settings as you would when tresholding manually. You are also asked to provide the number of the channel of the BF and FDA image ('1' for the first channel, '2' for the second, etc.).
 
 Z-stacks are automatically flattened using a maximum intensity projection.
 
@@ -70,8 +83,8 @@ Both these outputs can be used for further analysis/data visualisation.
 
 ### System Requirements
 
-- **FIJI/ImageJ**: For running the segmentation macro (segmentation.ijm)
-- **Python**: 3.7 or higher
+- **FIJI**: For running the segmentation macro (segmentation.ijm)
+- **Python**: 3.13 or higher
 
 ### Python Dependencies
 
