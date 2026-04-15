@@ -25,14 +25,12 @@ function get_analysis_settings() {
     while (!valid) {
         Dialog.create("Analysis Settings");
 
-        // ---- Particle settings ----
         Dialog.addMessage("Particle Analysis Parameters");
         Dialog.addNumber("Minimum particle size:", 100);
-        Dialog.addString("Maximum particle size:", "Infinity");
+        Dialog.addString("Maximum particle size (use 'Infinity'):", "Infinity");
         Dialog.addNumber("Minimum circularity (0.00 - 1.00):", 0.80);
         Dialog.addNumber("Maximum circularity (0.00 - 1.00):", 1.00);
 
-        // ---- Channel selection ----
         Dialog.addMessage("Channel Selection");
         Dialog.addNumber("BF channel:", 2);
         Dialog.addNumber("FDA channel:", 1);
