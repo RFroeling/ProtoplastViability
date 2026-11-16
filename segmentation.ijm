@@ -1,11 +1,14 @@
 
-// ================== Named field indices ==================
+// ================== Global variables  ==================
 IDX_SIZE_MIN   = 0;
 IDX_SIZE_MAX   = 1;
 IDX_CIRC_MIN   = 2;
 IDX_CIRC_MAX   = 3;
 IDX_BF_CHANNEL = 4;
 IDX_FDA_CHANNEL= 5;
+projection_method_BF = "Max Intensity";
+projection_method_FDA = "Max Intensity";
+projection_asked = false;
 
 // ================== Function definition ==================
 function get_analysis_settings() {
@@ -183,16 +186,57 @@ function open_image(path, filename) {
 	return pure_filename;
 }
 
-
-function z_project_if_stack() {
+function get_projection_settings() {
 	/*
-	Function to perform a Z-projection if the image is a stack.
+	Prompts the user to choose the Z-projection method for the BF and FDA channels.
+	Called once, the first time a Z-stack is encountered. Sets the global variables
+	proj_BF, proj_FDA and proj_asked.
 	*/
-	if (nSlices > 1) {
-		run("Z Project...", "projection=[Max Intensity]");
-	}
+	methods = newArray("Max Intensity", "Average Intensity", "Sum Slices",
+					   "Standard Deviation", "Median", "Min Intensity");
+
+	Dialog.create("Z-stack Projection Settings");
+	Dialog.addMessage("Z-stack detected. Choose the projection method for each channel.");
+	Dialog.addChoice("BF projection method:", methods, "Max Intensity");
+	Dialog.addChoice("FDA projection method:", methods, "Max Intensity");
+	Dialog.show();
+
+	proj_BF = Dialog.getChoice();
+	proj_FDA = Dialog.getChoice();
+	proj_asked = true;
+
+	print("Projection methods: BF = " + proj_BF + ", FDA = " + proj_FDA);
 }
 
+function z_project_if_stack(modality) {
+	/*
+	Performs a Z-projection if the image is a stack, using the method chosen
+	for the given modality.
+
+	Args: modality (string) - "BF" or "FDA"
+	*/
+	if (nSlices > 1) {
+		if (!proj_asked) {
+			get_projection_settings();
+		}
+
+		if (modality == "BF") {
+			method = proj_BF;
+		}
+		else {
+			method = proj_FDA;
+		}
+
+		run("Z Project...", "projection=[" + method + "]");
+
+		// Sum Slices and Standard Deviation return 32-bit images; convert back to 8-bit
+		// so that the downstream processing and thresholding behave consistently
+		if (bitDepth() != 8) {
+			setOption("ScaleConversions", true);
+			run("8-bit");
+		}
+	}
+}
 
 function preprocess_file() {
 	/*
@@ -221,7 +265,7 @@ function preprocess_and_duplicate_channels(modality) {
 	}
 
 	selectImage(channel_id + "-00_raw/" + filename);
-	z_project_if_stack();
+	z_project_if_stack(modality);
 	run(LUT);
 	save_image("Tiff", modality, "raw");
 	rename(pure_filename + "_" + modality + "_control");
@@ -405,7 +449,7 @@ function analyze_file(input_path, control_path, filename) {
 	preprocess_file();	
 	analyze_modality("BF", "MaxEntropy");
 	create_BF_mask(pure_filename);
-	analyze_modality("FDA", "Triangle");
+	analyze_modality("FDA", "Otsu");
 	run("Close All");
 }
 
