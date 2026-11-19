@@ -6,9 +6,9 @@ IDX_CIRC_MIN   = 2;
 IDX_CIRC_MAX   = 3;
 IDX_BF_CHANNEL = 4;
 IDX_FDA_CHANNEL= 5;
-projection_method_BF = "Max Intensity";
-projection_method_FDA = "Max Intensity";
-projection_asked = false;
+proj_BF = "Max Intensity";
+proj_FDA = "Max Intensity";
+var proj_asked = false;
 
 // ================== Function definition ==================
 function get_analysis_settings() {
@@ -22,7 +22,12 @@ function get_analysis_settings() {
 		CIRC_MAX (number) - maximum particle circularity (0.00 - 1.00),
 		BF_CHANNEL (string) - name of the brightfield channel (e.g. "C1"),
 		FDA_CHANNEL (string) - name of the FDA channel (e.g. "C2")]
+,
+		BF_ALGORITHM (string) - thresholding algorithm for BF images,
+		FDA_ALGORITHM (string) - thresholding algorithm for FDA images,
 	*/
+
+	methods = get_threshold_methods();
     valid = false;
 
     while (!valid) {
@@ -38,9 +43,13 @@ function get_analysis_settings() {
         Dialog.addNumber("BF channel:", 2);
         Dialog.addNumber("FDA channel:", 1);
 
+        Dialog.addMessage("Segmentation Algorithms");
+        Dialog.addChoice("BF algorithm:", methods, "MaxEntropy");
+        Dialog.addChoice("FDA algorithm:", methods, "Otsu");
+
         Dialog.show();
 
-        // ---- Retrieve inputs ----
+        // ---- Retrieve inputs (same order as added) ----
         size_min = Dialog.getNumber();
         size_max_str = Dialog.getString();
         circ_min = Dialog.getNumber();
@@ -49,8 +58,12 @@ function get_analysis_settings() {
         bf_index = Dialog.getNumber();
         fda_index = Dialog.getNumber();
 
+        BF_algorithm = Dialog.getChoice();
+        FDA_algorithm = Dialog.getChoice();
+
         BF_channel = "C" + d2s(bf_index, 0);
         FDA_channel = "C" + d2s(fda_index, 0);
+
 
         // ---- Validation ----
         valid = true;
@@ -85,9 +98,16 @@ function get_analysis_settings() {
         }
     }
 
-    return newArray(size_min, size_max_str, circ_min, circ_max, BF_channel, FDA_channel);
+    return newArray(size_min, size_max_str, circ_min, circ_max,
+                    BF_channel, FDA_channel, BF_algorithm, FDA_algorithm);
 }
 
+
+function get_threshold_methods() {
+	return newArray("Default", "Huang", "Intermodes", "IsoData", "IJ_IsoData",
+		"Li", "MaxEntropy", "Mean", "MinError", "Minimum", "Moments",
+		"Otsu", "Percentile", "RenyiEntropy", "Shanbhag", "Triangle", "Yen");
+}
 
 function is_open(title) {
 	/*
@@ -186,7 +206,8 @@ function open_image(path, filename) {
 	return pure_filename;
 }
 
-function get_projection_settings() {
+
+function get_projection_settings() {
 	/*
 	Prompts the user to choose the Z-projection method for the BF and FDA channels.
 	Called once, the first time a Z-stack is encountered. Sets the global variables
@@ -437,7 +458,7 @@ function analyze_modality(modality, algorithm) {
 }
 
 
-function analyze_file(input_path, control_path, filename) {
+function analyze_file(input_path, control_path, filename, params) {
 	/*
 	Function to analyze a single file.
 
@@ -447,9 +468,9 @@ function analyze_file(input_path, control_path, filename) {
 	*/
 	pure_filename = open_image(input_path, filename);
 	preprocess_file();	
-	analyze_modality("BF", "MaxEntropy");
+	analyze_modality("BF", params[6]);
 	create_BF_mask(pure_filename);
-	analyze_modality("FDA", "Otsu");
+	analyze_modality("FDA", params[7]);
 	run("Close All");
 }
 
@@ -464,7 +485,7 @@ function main() {
 
 	list = getFileList(directories[0]); // Get list of files in input directory
 	for (i = 0; i < list.length; i++) {
-		analyze_file(directories[0], directories[2], list[i]); // directories[0] = input directory, directories[2] = control directory
+		analyze_file(directories[0], directories[2], list[i], params); // directories[0] = input directory, directories[2] = control directory
 	}
 
 	save_summary();
