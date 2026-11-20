@@ -2,19 +2,33 @@
 
 ## Overview
 
-Workflow to calculate the viability of protoplasts using an FDA (Fluorescein Diacetate) assay. The workflow consists of a FIJI macro (segmentation.ijm) to process microscopy images, and a Python script (analysis.py) to calculate viability based on cell counts from the FIJI macro output.
+This workflow calculates protoplast viability using an FDA (Fluorescein Diacetate) assay. It consists of a FIJI macro ([segmentation.ijm](segmentation.ijm)) that segments microscopy images and counts cells, and a Python script ([analysis.py](analysis.py)) that calculates viability from the FIJI results.
 
 **Viability** is calculated as the ratio of viable cells (FDA-stained) to total cells (brightfield) in protoplast samples, useful for assessing cell viability across multiple replicates and experimental conditions.
 
-*Note on file selection:* Both scripts use a selection window to specify the working directory. This allows for greater flexibility, but also slows execution. If this becomes a problem, consider replacing the selection window code with an absolute/relative path to your working directory.
+*Note on directory selection:* Both scripts use a selection window to specify the working directory.
+
+## Input files
+
+The FIJI segmentation macro reads files from `00_raw/`. It opens supported image formats through the Bio-Formats Windowless Importer.
+
+If the source images are Leica `.lif` files, convert them before running [segmentation.ijm](segmentation.ijm):
+
+1. Open [utils/lif2tiff.ijm](utils/lif2tiff.ijm) in FIJI and run it.
+2. Select the `.lif` file.
+3. Select the output folder.
+4. The macro exports every LIF series as a TIFF named `Series<index>_<series name>.tif`.
+5. Copy or move those TIFF files into the working directory's `00_raw/` folder.
+
+Only the exported TIFF files in `00_raw/` are processed by `segmentation.ijm`. The original `.lif` file should not be placed in `00_raw/` when TIFF conversion has been used.
 
 ## Installation
 
 Installation is only required for the Python-portion of this workflow. If your goal is to only segment images and manually process the resulting data, no installation is required. Simply download the [macro](segmentation.ijm) and execute in FIJI.
 
 ```bash
-git clone https://git.wur.nl/froel001/protoplastviability.git
-cd protoplastviability
+git clone https://github.com/RFroeling/ProtoplastViability.git
+cd ProtoplastViability
 ```
 
 This project uses [uv](https://github.com/astral-sh/uv) for fast dependency management. If you don't have uv installed, install it first, then clone the repository and install dependencies using:
@@ -29,7 +43,7 @@ A requirements.txt file is provided for compatibility with pip. It is recommende
 
 ```bash
 python -m venv .venv
-venv/Scripts/activate
+.venv\Scripts\activate
 
 pip install -r requirements.txt
 ```
@@ -42,13 +56,13 @@ This FIJI macro opens all images in a user-specified working directory, segments
 
 ### Working directory
 
-Upon excecution, the macro prompts the user to select a working directory. This working directory should contain:
+Upon execution, the macro prompts the user to select a working directory. This working directory should contain:
 
-- A directory called '00_raw', where the raw image files to be analysed are located
+- A directory called `00_raw`, containing the raw TIFF or otherwise supported microscopy image files to be analysed. For `.lif` inputs, use [utils/lif2tiff.ijm](utils/lif2tiff.ijm) first as described above.
 
 ### Setting selection
 
-After having selected the working directory, you will be prompted for supplying the segmentation settings. Provide the circularity and size settings as you would when tresholding manually. You are also asked to provide the number of the channel of the BF and FDA image ('1' for the first channel, '2' for the second, etc.).
+After selecting the working directory, enter the segmentation settings. Provide the minimum and maximum particle size, minimum and maximum circularity, the BF and FDA channel indices, and the thresholding algorithms. Channel indices use ImageJ channel names (for example, `1` or `2`). The macro's default BF channel is `C2` and its default FDA channel is `C1`.
 
 Z-stacks are automatically flattened using a maximum intensity projection.
 
@@ -56,26 +70,33 @@ Z-stacks are automatically flattened using a maximum intensity projection.
 
 Once finished, the folder '01_analysis' will be added to the working directory. Here, you'll find the following outputs:
 
-- 01_analysis/control: .tif exports of the BF and FDA channels for each image, as well as .jpg images that indicate which cells are counted, and .jpg images of the segmentation. Use these outputs to check the quality of the segmentation/troubleshoot any problems.
-- 01_analysis/results: .csv files for each image channel (seperate files for BF and FDA), with the results from the analysis.
+- 01_analysis/control: TIFF exports and JPG control/composite images for checking segmentation and cell counting.
+- 01_analysis/results: separate CSV result files for the BF and FDA channels of each image.
 - 01_analysis/summary.csv: a summary file with the count for each image channel. This is used as input for *analysis.py*.
 
 ## analysis.py
 
-This Python script reads the *summary.csv* output from the *segmentation.ijm* and calculates viability based on the amount of cells counted in the BF and FDA slice of each replicate. It then groups the replicates by condition, and calculates the mean viability, amount of replicates (Count), and standard deviation of that condition. It also produces a box/violin plot of the viability for each condition.
+This Python script reads `01_analysis/summary.csv`, pairs the BF and FDA counts for each image, and calculates viability. It also groups replicates by condition and calculates the mean viability, replicate count, and standard deviation. The script saves a box plot of the viability for each condition.
 
 $$\text{Viability} = \frac{\text{FDA cell count}}{\text{BF cell count}} \times 100\%$$
 
 ### Dealing with replication
 
-Make sure that replicates of a single condition are indicated by the suffix (_00x), where x indicates the index of that replicate (so_001, _002, etc.). Images taken using Nikon's NIS software contain such a suffix by default.
+Replicate names must end in a suffix such as `_001`, `_002`, and `_003`. The text before this final suffix is used as the condition name. For example, `TreatmentA_001` and `TreatmentA_002` are grouped as `TreatmentA`.
 
 ### Execution
 
-Upon excecution, the script prompts the user to select a working directory. This should be the same working directory as used for the FIJI macro (or at least, the selected directory should contain *analysis/summary.csv*). The Python script will generate two .csv files:
+Run the script with:
 
-- 'viability.csv', which contains the calculated viability for all replicates
-- 'viability_statistics.csv', which contains the mean, count, and standard deviation of the viability for each condition.
+```bash
+uv run analysis.py
+```
+
+The script prompts the user to select the working directory. This should be the same directory used for the FIJI macro and contain `01_analysis/summary.csv`. It generates:
+
+- `01_analysis/viability.csv`: calculated viability for all replicates
+- `01_analysis/viability_statistics.csv`: mean, count, and standard deviation for each condition
+- `01_analysis/viability_plot.png`: a box plot of viability by condition
 
 Both these outputs can be used for further analysis/data visualisation.
 
@@ -83,7 +104,7 @@ Both these outputs can be used for further analysis/data visualisation.
 
 ### System Requirements
 
-- **FIJI**: For running the segmentation macro (segmentation.ijm)
+- **FIJI**: For running the segmentation and LIF conversion macros. The macros require the FIJI Bio-Formats plugins.
 - **Python**: 3.13 or higher
 
 ### Python Dependencies
@@ -117,9 +138,7 @@ If you use this software in your research, please cite it using the following me
 @software{ProtoplastViability,
   title={ProtoplastViability},
   author={Froeling, Rik and Sprakel, Joris},
-  affiliation={Wageningen University \& Research},
-  doi={},
-  year={2026}
+  affiliation={Wageningen University \& Research}
 }
 ```
 
@@ -138,8 +157,8 @@ If the cell segmentation quality is poor, consider:
 
 ### Python Script Issues
 
-- Ensure replicates are properly named with the suffix `_00x` (e.g., `sample_001`, `sample_002`)
-- Verify that `summary.csv` exists in the working directory's `analysis` folder
+- Ensure replicates are properly named with a numeric suffix such as `_001` or `_002`
+- Verify that `01_analysis/summary.csv` exists
 - Check that the CSV format matches the expected output from the FIJI macro
 
 ## Contributing
